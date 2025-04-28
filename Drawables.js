@@ -132,6 +132,10 @@ class Terrain {
     getType() {
         return this.gl.TRIANGLES;
     }
+
+    getBuffers() {
+        return [this.getVertexBuffer(), this.getColorBuffer(), this.getNormalBuffer()];
+    }
 }
 
 function printarr(arr) {

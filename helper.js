@@ -14,33 +14,24 @@ function setBufferAttributes(gl, shapeData) {
     let buffers = shapeData.drawable.getBuffers();
     for (let i = 0; i < attributes.length; i++) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
-        gl.vertexAttribPointer(shapeData.programInfo.location[i], attributes[i].size, attributes[i].type, attributes[i].normalize, attributes[i].stride, attributes[i].offset);
+        gl.vertexAttribPointer(shapeData.programInfo.bufferLocations[i], attributes[i].size, attributes[i].type, attributes[i].normalize, attributes[i].stride, attributes[i].offset);
     }
-    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getVertexBuffer());
-    // gl.vertexAttribPointer(shapeData.programInfo.positionLocation, attributes[0].size, attributes[0].type, attributes[0].normalize, attributes[0].stride, attributes[0].offset);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getColorBuffer());
-    // gl.vertexAttribPointer(shapeData.programInfo.colorLocation, attributes[1].size, attributes[1].type, attributes[1].normalize, attributes[1].stride, attributes[1].offset);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getNormalBuffer());
-    // gl.vertexAttribPointer(shapeData.programInfo.normalLocation, attributes[2].size, attributes[2].type, attributes[2].normalize, attributes[2].stride, attributes[2].offset);
 }
 
-function createProgramInfo(gl, vertexShaderText, fragmentShaderText) {
+function createProgramInfo(gl, vertexShaderText, fragmentShaderText, attributeNames) {
     var program = initShaders(gl, vertexShaderText, fragmentShaderText);
+    let bufferLocations = [];
+    console.log(attributeNames)
 
-    var positionLocation = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(positionLocation);
-
-    var colorLocation = gl.getAttribLocation(program, "a_color");
-    gl.enableVertexAttribArray(colorLocation);
-
-    var normalLocation = gl.getAttribLocation(program, "a_normal");
-    gl.enableVertexAttribArray(normalLocation);
+    for (let i = 0; i < attributeNames.length; i++) {
+        let loc = gl.getAttribLocation(program, attributeNames[i]);
+        gl.enableVertexAttribArray(loc);
+        bufferLocations.push(loc);
+    }
 
     return {
         program: program,
-        positionLocation: positionLocation,
-        colorLocation: colorLocation,
-        normalLocation: normalLocation,
+        bufferLocations: bufferLocations,
     }
 }
 

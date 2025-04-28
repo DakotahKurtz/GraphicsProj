@@ -1,17 +1,5 @@
 "use strict";
 
-
-
-
-// save into 1D Array
-
-
-
-
-
-
-
-
 var DrawableObjectArray = [];
 
 window.onload = function init() {
@@ -20,7 +8,7 @@ window.onload = function init() {
     var gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
 
-    var programInfo = createProgramInfo(gl, "vertex-shader", "fragment-shader");
+    var programInfo = createProgramInfo(gl, "vertex-shader", "fragment-shader", ["a_position", "a_color", "a_normal"]);
     gl.useProgram(programInfo.program);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -57,58 +45,9 @@ window.onload = function init() {
         ),
     );
 
-    const pressedKeys = {};
-
-    document.addEventListener('keydown', (event) => {
-        pressedKeys[event.key] = true;
-    });
-
-    document.addEventListener('keyup', (event) => {
-        delete pressedKeys[event.key];
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (pressedKeys["Shift"]) {
-            handleControls(event, lookingAt, lookInc);
-
-            switch (event.key) {
-                case ("n"):
-                    boundingNear = Math.max(0, boundingNear - boundingInc);
-                    break;
-                case ("e"):
-                    boundingFar = Math.max(boundingNear, boundingFar + boundingInc);
-                    break;
-                case ("a"):
-                    viewAngle = Math.max(10, viewAngle - angleInc);
-                    break;
-
-            }
-        } else if (pressedKeys["l"]) {
-            handleControls(event, lightDirection, lightInc);
-        }
-        else {
-            handleControls(event, cameraLocation, cameraAtInc);
-            switch (event.key) {
-                case ("n"):
-                    boundingNear = Math.min(boundingFar, boundingNear + boundingInc);
-                    break;
-                case ("e"):
-                    boundingFar += boundingInc;
-                    break;
-                case ("a"):
-                    viewAngle = Math.min(355, viewAngle + angleInc);
-                    break;
-            }
-        }
+    manageControls();
 
 
-        // console.log("CameraLocation: " + cameraLocation);
-        console.log("Light: " + normalize(lightDirection))
-        console.log("LookingAt: " + lookingAt);
-        console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
-        render();
-
-    });
 
     render();
 
@@ -136,9 +75,64 @@ window.onload = function init() {
 
         })
     }
+
+    function manageControls() {
+        const pressedKeys = {};
+
+        document.addEventListener('keydown', (event) => {
+            pressedKeys[event.key] = true;
+        });
+
+        document.addEventListener('keyup', (event) => {
+            delete pressedKeys[event.key];
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (pressedKeys["Shift"]) {
+                adjustControlArray(event, lookingAt, lookInc);
+
+                switch (event.key) {
+                    case ("n"):
+                        boundingNear = Math.max(0, boundingNear - boundingInc);
+                        break;
+                    case ("e"):
+                        boundingFar = Math.max(boundingNear, boundingFar + boundingInc);
+                        break;
+                    case ("a"):
+                        viewAngle = Math.max(10, viewAngle - angleInc);
+                        break;
+
+                }
+            } else if (pressedKeys["l"]) {
+                adjustControlArray(event, lightDirection, lightInc);
+            }
+            else {
+                adjustControlArray(event, cameraLocation, cameraAtInc);
+                switch (event.key) {
+                    case ("n"):
+                        boundingNear = Math.min(boundingFar, boundingNear + boundingInc);
+                        break;
+                    case ("e"):
+                        boundingFar += boundingInc;
+                        break;
+                    case ("a"):
+                        viewAngle = Math.min(355, viewAngle + angleInc);
+                        break;
+                }
+            }
+
+
+            // console.log("CameraLocation: " + cameraLocation);
+            console.log("Light: " + normalize(lightDirection))
+            console.log("LookingAt: " + lookingAt);
+            console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
+            render();
+
+        });
+    }
 }
 
-function handleControls(event, array, inc) {
+function adjustControlArray(event, array, inc) {
     switch (event.key) {
         case ("ArrowLeft"):
             array[0] -= inc;
@@ -162,3 +156,4 @@ function handleControls(event, array, inc) {
             break;
     }
 }
+
