@@ -1,0 +1,115 @@
+function bufferAttributes(size, type, opt_normalize = false, opt_stride = 0, opt_offset = 0) {
+    return {
+        size: size,
+        type: type,
+        normalize: opt_normalize,
+        stride: opt_stride,
+        offset: opt_offset
+    }
+}
+
+function setBufferAttributes(gl, shapeData) {
+    let attributes = shapeData.bufferAttributes;
+    console.log(attributes.length);
+    let buffers = shapeData.drawable.getBuffers();
+    for (let i = 0; i < attributes.length; i++) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
+        gl.vertexAttribPointer(shapeData.programInfo.location[i], attributes[i].size, attributes[i].type, attributes[i].normalize, attributes[i].stride, attributes[i].offset);
+    }
+    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getVertexBuffer());
+    // gl.vertexAttribPointer(shapeData.programInfo.positionLocation, attributes[0].size, attributes[0].type, attributes[0].normalize, attributes[0].stride, attributes[0].offset);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getColorBuffer());
+    // gl.vertexAttribPointer(shapeData.programInfo.colorLocation, attributes[1].size, attributes[1].type, attributes[1].normalize, attributes[1].stride, attributes[1].offset);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, shapeData.drawable.getNormalBuffer());
+    // gl.vertexAttribPointer(shapeData.programInfo.normalLocation, attributes[2].size, attributes[2].type, attributes[2].normalize, attributes[2].stride, attributes[2].offset);
+}
+
+function createProgramInfo(gl, vertexShaderText, fragmentShaderText) {
+    var program = initShaders(gl, vertexShaderText, fragmentShaderText);
+
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(positionLocation);
+
+    var colorLocation = gl.getAttribLocation(program, "a_color");
+    gl.enableVertexAttribArray(colorLocation);
+
+    var normalLocation = gl.getAttribLocation(program, "a_normal");
+    gl.enableVertexAttribArray(normalLocation);
+
+    return {
+        program: program,
+        positionLocation: positionLocation,
+        colorLocation: colorLocation,
+        normalLocation: normalLocation,
+    }
+}
+
+function loadBuffer(gl, values, type) {
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, values, type);
+
+    return buffer;
+}
+
+function createShader(gl, type, source) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (success) {
+        return shader;
+    }
+
+    console.log(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+}
+
+function createProgram(gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+        return program;
+    }
+
+    console.log(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+}
+
+function DrawableObject(shape, programInfo, bufferAttributes, opt_shininess = 1) {
+    return {
+        drawable: shape,
+        programInfo: programInfo,
+        bufferAttributes: bufferAttributes,
+        shininess: opt_shininess,
+    }
+}
+
+function calculateNormals(p1, p2, p3) {
+    return [calculateNormal(p1, p2, p3), calculateNormal(p2, p3, p1), calculateNormal(p3, p1, p2)]
+}
+
+function crossProduct(p1, p2) {
+    let arr = [p1.y * p2.z - p1.z * p2.y, p1.z * p2.x - p1.x * p2.z, p1.x * p2.y - p1.y * p2.x];
+    return arr;
+}
+
+function calculateNormal(p1, p2, p3) {
+    let v1 = subtractArr(p2, p1);
+    let v2 = subtractArr(p3, p1);
+
+    return crossProduct(v1, v2);
+}
+function subtractArr(p1, p2) {
+    return point(p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]);
+}
+function point(x, y, z) {
+    return {
+        x: x,
+        y: y,
+        z: z,
+    }
+}

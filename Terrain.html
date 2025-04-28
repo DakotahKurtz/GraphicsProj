@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<style type="text/css">
+    canvas {
+        background: blue;
+    }
+</style>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute vec4 a_position;
+attribute vec4 a_color;
+attribute vec3 a_normal;
+
+varying vec4 v_color;
+varying vec3 v_normal;
+
+uniform mat4 modelView;
+uniform mat4 projection;
+
+void main() 
+{
+    gl_Position = projection*modelView*a_position;
+
+    v_normal = mat3(modelView) * a_normal;
+
+    v_color = a_color;
+} 
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 v_color;
+varying vec3 v_normal;
+
+uniform vec3 uReverseLightDirection;
+
+
+void
+main()
+{
+    vec3 normal = normalize(v_normal);
+   float light = dot(normal, uReverseLightDirection);
+
+    gl_FragColor = v_color;
+   gl_FragColor.rgb *= light;
+}
+</script>
+
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
+<script type="text/javascript" src="terrainDataRaw.js"></script>
+<script src="Drawables.js"></script>
+<script src="helper.js"></script>
+<script type="text/javascript" src="Terrain.js"></script>
+
+<body>
+    <canvas id="gl-canvas" width="800" height="800">
+        Oops ... your browser doesn't support the HTML5 canvas element
+    </canvas>
+
+</body>
+
+</html>
