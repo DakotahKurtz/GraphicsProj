@@ -172,9 +172,7 @@ class SkyBox {
     }
 
     draw() {
-        for (let i = 0; i < this.getBuffers().length; i++) {
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, false,)
-        }
+
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
     }

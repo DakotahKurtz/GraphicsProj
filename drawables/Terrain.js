@@ -65,6 +65,11 @@ class Terrain {
         this.numVertices = this.pointsArray.length;
     }
 
+    draw() {
+        this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
+
+    }
+
     prepMesh(nRows, nColumns) {
         let gridPoints = [];
         let gridColors = [];

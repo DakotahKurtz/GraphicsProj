@@ -97,8 +97,7 @@ window.onload = function init() {
         DrawableObjectArray.forEach((drawableObject) => {
 
             setBufferAttributes(gl, drawableObject);
-            gl.drawArrays(drawableObject.drawable.getType(), 0, drawableObject.drawable.getNumVertices());
-
+            drawableObject.drawable.draw();
         })
 
         gl.useProgram(programDataSkyBox.program);
@@ -106,13 +105,11 @@ window.onload = function init() {
         skyboxUniforms["modelView"] = flatten(mvMatrix);
         skyboxUniforms["projection"] = flatten(pMatrix);
         skyboxUniforms["u_texture"] = lightPositionNorm;
-        // setUniforms(skyboxUniforms, programDataSkyBox);
-        for (const [name, value] of Object.entries(skyboxUniforms)) {
-            programDataSkyBox.setUniform(name, value);
-        }
-        console.log(skyBoxObject.drawable.getType());
+        setUniforms(skyboxUniforms, programDataSkyBox);
+
         setBufferAttributes(gl, skyBoxObject);
-        gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
+        skyBoxObject.drawable.draw();
+        // gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
 
     }
 
