@@ -32,6 +32,7 @@ class SkyBox {
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             }
+            console.log("Loaded")
         });
     }
 
@@ -171,6 +172,9 @@ class SkyBox {
     }
 
     draw() {
+        for (let i = 0; i < this.getBuffers().length; i++) {
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, false,)
+        }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
     }

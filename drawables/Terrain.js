@@ -43,23 +43,26 @@ class Terrain {
             let n1 = normalize(normals[0]);
             let n2 = normalize(normals[1]);
             let n3 = normalize(normals[2]);
+            // let n1 = [0, -1, 0];
+            // let n2 = n1;
+            // let n3 = n1;
 
+            // console.log(i + " | " + printarr(this.pointsArray[i]) + " | " + printarr(this.pointsArray[i + 1]) + " | " + printarr(this.pointsArray[i + 2]));
+            // console.log(i + " | " + printarr(n1) + " | " + printarr(n2) + " | " + printarr(n3));
             this.normalsArray.push(
                 n1, n2, n3
             )
 
         }
 
+        // console.log("SIZES: " + flatten(this.pointsArray).length + ", " + flatten(this.normalsArray).length);
+
+
         this.vectorBuffer = loadBuffer(this.gl, flatten(this.pointsArray), gl.STATIC_DRAW);
         this.colorBuffer = loadBuffer(this.gl, flatten(this.colorsArray), gl.STATIC_DRAW);
         this.normalBuffer = loadBuffer(this.gl, flatten(this.normalsArray), gl.STATIC_DRAW);
 
         this.numVertices = this.pointsArray.length;
-    }
-
-    draw() {
-        this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
-
     }
 
     prepMesh(nRows, nColumns) {
