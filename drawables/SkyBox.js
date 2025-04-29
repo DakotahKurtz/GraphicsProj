@@ -169,5 +169,10 @@ class SkyBox {
 
         return positions;
     }
+
+    draw() {
+        this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
+
+    }
 }
 
