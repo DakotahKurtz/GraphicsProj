@@ -11,14 +11,20 @@ function bufferAttributes(size, type, opt_normalize = false, opt_stride = 0, opt
 function setBufferAttributes(gl, shapeData) {
     let attributes = shapeData.bufferAttributes;
     console.log(attributes.length);
+    console.log(attributes);
     let buffers = shapeData.drawable.getBuffers();
     for (let i = 0; i < attributes.length; i++) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
-        gl.vertexAttribPointer(shapeData.programInfo.bufferLocations[i], attributes[i].size, attributes[i].type, attributes[i].normalize, attributes[i].stride, attributes[i].offset);
+        gl.vertexAttribPointer(shapeData.programInfo.getBufferLocations()[i], attributes[i].size, attributes[i].type, attributes[i].normalize, attributes[i].stride, attributes[i].offset);
     }
 }
 
-function createProgramInfo(gl, vertexShaderText, fragmentShaderText, attributeNames) {
+
+
+function createProgramInfo(gl, vertexShaderText, fragmentShaderText, attributeNames,) {
+
+
+
     var program = initShaders(gl, vertexShaderText, fragmentShaderText);
     let bufferLocations = [];
     console.log(attributeNames)
@@ -28,6 +34,10 @@ function createProgramInfo(gl, vertexShaderText, fragmentShaderText, attributeNa
         gl.enableVertexAttribArray(loc);
         bufferLocations.push(loc);
     }
+
+
+
+
 
     return {
         program: program,
@@ -103,4 +113,8 @@ function point(x, y, z) {
         y: y,
         z: z,
     }
+}
+
+function isPowerOf2(value) {
+    return (value & (value - 1)) === 0;
 }

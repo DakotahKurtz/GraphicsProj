@@ -40,7 +40,7 @@ function main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     // Put the positions in the buffer
     // setGeometry(gl);
-    setBoxGeo(gl, 40);
+    getBoxPoints(gl, 40);
 
     // provide texture coordinates for the rectangle.
     var texcoordBuffer = gl.createBuffer();
@@ -277,7 +277,7 @@ function setTexcoords2(gl) {
         gl.STATIC_DRAW);
 }
 
-function setBoxGeo(gl, size) {
+function getBoxPoints(gl, size) {
     positions = new Float32Array([
 
 
