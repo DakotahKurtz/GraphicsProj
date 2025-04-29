@@ -1,8 +1,9 @@
 class Terrain {
-    constructor(gl, nRows, nColumns) {
+    constructor(gl, nRows, nColumns, size) {
         this.gl = gl;
         this.nRows = nRows;
         this.nColumns = nColumns;
+        this.size = size;
 
         this.terrainData = this.genTerrainData(this.nRows, this.nColumns);
         this.pointsArray = [];
@@ -72,7 +73,11 @@ class Terrain {
             let rowP = [];
             let rowC = [];
             for (var j = 0; j < nColumns; ++j) {
-                rowP.push([this.terrainData[i][j][0], this.terrainData[i][j][1], this.terrainData[i][j][2]]);
+                rowP.push([
+                    this.scalingFactor * this.terrainData[i][j][0],
+                    this.scalingFactor * this.terrainData[i][j][1],
+                    this.scalingFactor * this.terrainData[i][j][2]
+                ]);
                 rowC.push([i / nRows, j / nColumns, 0.0, 1.0]);
             }
             gridPoints.push(rowP);
@@ -93,15 +98,20 @@ class Terrain {
 
         let terrainDataWidth = terrainDataRaw.length;
         let terrainDataHeight = terrainDataRaw[0].length;
+        let min = Number.MAX_VALUE;
+        let max = Number.MIN_VALUE;
 
         for (let i = 0; i < rows; i++) {
             let r = [];
             for (let j = 0; j < cols; j++) {
                 let actual = terrainDataRaw[Math.floor(i * terrainDataWidth / cols)][Math.floor(j * terrainDataHeight / rows)];
+                min = Math.min(min, Math.min(actual[0], actual[2]));
+                max = Math.max(max, Math.max(actual[0], actual[2]));
                 r.push(actual);
             }
             data.push(r);
         }
+        this.scalingFactor = this.size / (max - min);
         return data;
     }
 

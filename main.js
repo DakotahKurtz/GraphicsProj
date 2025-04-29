@@ -10,25 +10,50 @@ window.onload = function init() {
     var gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
 
-    var programInfoTerrain = createProgramInfo(gl, "vertex-shader-terrain", "fragment-shader-terrain",
-        ["a_position", "a_color", "a_normal"],
-    );
-    var programInfoSkyBox = createProgramInfo(gl, "vertex-shader-skybox", "fragment-shader-skybox",
-        ["a_position", "a_texcoord"],
-    )
+    // var programInfoTerrain = createProgramInfo(gl, "vertex-shader-terrain", "fragment-shader-terrain",
+    //     ["a_position", "a_color", "a_normal"],
+    // );
+    // var programInfoSkyBox = createProgramInfo(gl, "vertex-shader-skybox", "fragment-shader-skybox",
+    //     ["a_position", "a_texcoord"],
+    // )
+    var programDataTerrain = new ProgramData(gl, "vertex-shader-terrain", "fragment-shader-terrain",
+        ["a_position", "a_color", "a_normal"],);
+    var programDataSkyBox = new ProgramData(gl, "vertex-shader-skybox", "fragment-shader-skybox",
+        ["a_position", "a_texcoord"],);
+
 
     var modelMatrixLocationTerrain, projMatrixLocTerrain, reverseLightDirLocationTerrain;
 
     // get uniform locations
-    gl.useProgram(programInfoTerrain.program);
-    modelMatrixLocationTerrain = gl.getUniformLocation(programInfoTerrain.program, "modelView");
-    projMatrixLocTerrain = gl.getUniformLocation(programInfoTerrain.program, "projection");
-    reverseLightDirLocationTerrain = gl.getUniformLocation(programInfoTerrain.program, "uReverseLightDirection");
+    // gl.useProgram(programInfoTerrain.program);
+    var terrainUniforms = {
+        "modelView": 0,
+        "projection": 0,
+        "uReverseLightDirection": 0,
+    };
 
-    gl.useProgram(programInfoSkyBox.program);
-    var modelMatrixLocationSkyBox = gl.getUniformLocation(programInfoSkyBox.program, "modelView");
-    var projMatrixLocSkyBox = gl.getUniformLocation(programInfoSkyBox.program, "projection");
-    var textureLocation = gl.getUniformLocation(programInfoSkyBox.program, "u_texture")
+    for (const [name] of Object.entries(terrainUniforms)) {
+        programDataTerrain.getUniformInfo(name);
+    }
+
+    var skyboxUniforms = {
+        "modelView": 0,
+        "projection": 0,
+        "u_texture": 0,
+    }
+
+    for (const [name] of Object.entries(skyboxUniforms)) {
+        programDataSkyBox.getUniformInfo(name);
+    }
+
+    // modelMatrixLocationTerrain = gl.getUniformLocation(programInfoTerrain.program, "modelView");
+    // projMatrixLocTerrain = gl.getUniformLocation(programInfoTerrain.program, "projection");
+    // reverseLightDirLocationTerrain = gl.getUniformLocation(programInfoTerrain.program, "uReverseLightDirection");
+
+    // gl.useProgram(programInfoSkyBox.program);
+    // var modelMatrixLocationSkyBox = gl.getUniformLocation(programInfoSkyBox.program, "modelView");
+    // var projMatrixLocSkyBox = gl.getUniformLocation(programInfoSkyBox.program, "projection");
+    // var textureLocation = gl.getUniformLocation(programInfoSkyBox.program, "u_texture")
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -41,8 +66,8 @@ window.onload = function init() {
     var angleInc = 10;
     var lightInc = .1;
 
-    var cameraLocation = [0, 3, 3];
-    var lookingAt = [0, 0, 1];
+    var cameraLocation = [0, 4.9, 1.6];
+    var lookingAt = [-2, -1.5, 20];
     var boundingNear = .3;
     var boundingFar = 50;
     var viewAngle = 30;
@@ -54,13 +79,13 @@ window.onload = function init() {
 
 
     DrawableObjectArray.push(
-        DrawableObject(new Terrain(gl, 512, 512), programInfoTerrain,
+        DrawableObject(new Terrain(gl, 512, 512, 20), programDataTerrain,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
         ),
     );
 
 
-    var skyBoxObject = DrawableObject(new SkyBox(gl, 20), programInfoSkyBox,
+    var skyBoxObject = DrawableObject(new SkyBox(gl, 20), programDataSkyBox,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)]
     );
 
@@ -80,12 +105,19 @@ window.onload = function init() {
         let mvMatrix = lookAt(eye, at, up);
         let pMatrix = perspective(viewAngle, aspect, boundingNear, boundingFar);
 
-        gl.useProgram(programInfoTerrain.program);
+        programDataTerrain.use();
+        // gl.useProgram(programInfoTerrain.program);
         // pass info to the shader
-        gl.uniformMatrix4fv(modelMatrixLocationTerrain, false, flatten(mvMatrix));
-        gl.uniformMatrix4fv(projMatrixLocTerrain, false, flatten(pMatrix));
+        // gl.uniformMatrix4fv(modelMatrixLocationTerrain, false, flatten(mvMatrix));
+        // gl.uniformMatrix4fv(projMatrixLocTerrain, false, flatten(pMatrix));
 
-        gl.uniform3fv(reverseLightDirLocationTerrain, lightPositionNorm);
+        // gl.uniform3fv(reverseLightDirLocationTerrain, lightPositionNorm);
+        terrainUniforms["modelView"] = flatten(mvMatrix);
+        terrainUniforms["projection"] = flatten(pMatrix);
+        terrainUniforms["uReverseLightDirection"] = flatten(lightPositionNorm);
+        for (const [name, value] of Object.entries(terrainUniforms)) {
+            programDataTerrain.setUniform(name, value);
+        }
 
 
         DrawableObjectArray.forEach((drawableObject) => {
@@ -95,10 +127,17 @@ window.onload = function init() {
 
         })
 
-        gl.useProgram(programInfoSkyBox.program);
-        gl.uniformMatrix4fv(modelMatrixLocationSkyBox, false, flatten((mvMatrix)));
-        gl.uniformMatrix4fv(projMatrixLocSkyBox, false, flatten(pMatrix));
-        gl.uniform1i(textureLocation, 0);
+        // gl.useProgram(programInfoSkyBox.program);
+        programDataSkyBox.use();
+        skyboxUniforms["modelView"] = flatten(mvMatrix);
+        skyboxUniforms["projection"] = flatten(pMatrix);
+        skyboxUniforms["u_texture"] = lightPositionNorm;
+        for (const [name, value] of Object.entries(skyboxUniforms)) {
+            programDataSkyBox.setUniform(name, value);
+        }
+        // gl.uniformMatrix4fv(modelMatrixLocationSkyBox, false, flatten((mvMatrix)));
+        // gl.uniformMatrix4fv(projMatrixLocSkyBox, false, flatten(pMatrix));
+        // gl.uniform1i(textureLocation, 0);
         setBufferAttributes(gl, skyBoxObject);
         gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
 
