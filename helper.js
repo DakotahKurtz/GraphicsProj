@@ -95,6 +95,33 @@ function DrawableObject(shape, programInfo, bufferAttributes, opt_shininess = 1)
     }
 }
 
+function loadImage(url, callback) {
+    var image = new Image();
+    image.crossOrigin = "anonymous";
+    image.src = url;
+    image.onload = callback;
+    return image;
+}
+
+function loadImages(urls, callback) {
+    var images = [];
+    var imagesToLoad = urls.length;
+
+    // Called each time an image finished loading.
+    var onImageLoad = function () {
+        --imagesToLoad;
+        // If all the images are loaded call the callback.
+        if (imagesToLoad == 0) {
+            callback(images);
+        }
+    };
+
+    for (var ii = 0; ii < imagesToLoad; ++ii) {
+        var image = loadImage(urls[ii], onImageLoad);
+        images.push(image);
+    }
+}
+
 function calculateNormals(p1, p2, p3) {
     return [calculateNormal(p1, p2, p3), calculateNormal(p2, p3, p1), calculateNormal(p3, p1, p2)]
 }

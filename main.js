@@ -2,9 +2,16 @@
 
 var DrawableObjectArray = [];
 
+function main() {
+    var imageURLS = [
+        "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png"
+    ]
+    loadImages(imageURLS, init);
+}
 
+main();
 
-window.onload = function init() {
+function init(images) {
     var canvas = document.getElementById("gl-canvas");
 
     var gl = WebGLUtils.setupWebGL(canvas);
@@ -59,7 +66,7 @@ window.onload = function init() {
     var boundingFar = 50;
     var viewAngle = 30;
 
-    var lightPosition = vec4(0, 5, .5, .5, 0.0);
+    var lightPosition = vec4(0, .5, 0, 1);
     var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
     var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
     var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
@@ -84,7 +91,7 @@ window.onload = function init() {
     );
 
 
-    var skyBoxObject = DrawableObject(new SkyBox(gl, 20), programDataSkyBox,
+    var skyBoxObject = DrawableObject(new SkyBox(gl, 20, images[0]), programDataSkyBox,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)]
     );
 
@@ -180,7 +187,7 @@ window.onload = function init() {
 
 
             // console.log("CameraLocation: " + cameraLocation);
-            console.log("Light: " + normalize(lightPosition))
+            console.log("Light: " + lightPosition)
             console.log("LookingAt: " + lookingAt);
             console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
             console.log("Position: " + cameraLocation)
