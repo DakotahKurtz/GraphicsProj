@@ -81,10 +81,16 @@ function createProgram(gl, vertexShader, fragmentShader) {
 }
 
 function DrawableObject(shape, programInfo, bufferAttributes, opt_shininess = 1) {
+
+    const drawHelper = function () {
+        shape.draw(programInfo, bufferAttributes);
+    }
+
     return {
         drawable: shape,
         programInfo: programInfo,
         bufferAttributes: bufferAttributes,
+        draw: drawHelper,
         shininess: opt_shininess,
     }
 }

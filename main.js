@@ -96,8 +96,7 @@ window.onload = function init() {
 
         DrawableObjectArray.forEach((drawableObject) => {
 
-            setBufferAttributes(gl, drawableObject);
-            drawableObject.drawable.draw();
+            drawableObject.draw()
         })
 
         gl.useProgram(programDataSkyBox.program);
@@ -107,8 +106,7 @@ window.onload = function init() {
         skyboxUniforms["u_texture"] = lightPositionNorm;
         setUniforms(skyboxUniforms, programDataSkyBox);
 
-        setBufferAttributes(gl, skyBoxObject);
-        skyBoxObject.drawable.draw();
+        skyBoxObject.draw();
         // gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
 
     }

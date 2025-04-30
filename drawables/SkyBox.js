@@ -171,8 +171,13 @@ class SkyBox {
         return positions;
     }
 
-    draw() {
+    draw(programInfo, bufferAttributes) {
 
+        let buffers = this.getBuffers();
+        for (let i = 0; i < bufferAttributes.length; i++) {
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffers[i]);
+            this.gl.vertexAttribPointer(programInfo.getBufferLocations()[i], bufferAttributes[i].size, bufferAttributes[i].type, bufferAttributes[i].normalize, bufferAttributes[i].stride, bufferAttributes[i].offset);
+        }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
     }
