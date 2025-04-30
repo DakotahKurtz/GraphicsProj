@@ -103,7 +103,7 @@ window.onload = function init() {
         programDataSkyBox.use();
         skyboxUniforms["modelView"] = flatten(mvMatrix);
         skyboxUniforms["projection"] = flatten(pMatrix);
-        skyboxUniforms["u_texture"] = lightPositionNorm;
+        skyboxUniforms["u_texture"] = 0;
         setUniforms(skyboxUniforms, programDataSkyBox);
 
         skyBoxObject.draw();
