@@ -1,36 +1,17 @@
 class SkyBox {
-    constructor(gl, size, textureImage) {
+    constructor(gl, size, textureID) {
         this.gl = gl;
+        this.textureID = textureID;
         let vertices = this._getBoxPoints(size);
         let texCoords = this._setTexcoords();
 
         this.vertexBuffer = loadBuffer(gl, vertices, gl.STATIC_DRAW);
         this.texBuffer = loadBuffer(gl, texCoords, gl.STATIC_DRAW);
         this.numVertices = vertices.length / 3;
+    }
 
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        // Fill the texture with a 1x1 blue pixel.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-            new Uint8Array([0, 0, 255, 255]));
-        // Asynchronously load an image
-
-        // Now that the image has loaded make copy it to the texture.
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImage);
-
-        // Check if the image is a power of 2 in both dimensions.
-        if (isPowerOf2(textureImage.width) && isPowerOf2(textureImage.height)) {
-            // Yes, it's a power of 2. Generate mips.
-            gl.generateMipmap(gl.TEXTURE_2D);
-        } else {
-            // No, it's not a power of 2. Turn of mips and set wrapping to clamp to edge
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        }
-        console.log("Loaded")
-
+    getTextureID() {
+        return this.textureID;
     }
 
     getTextureBuffer() {

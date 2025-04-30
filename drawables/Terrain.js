@@ -1,13 +1,15 @@
 class Terrain {
-    constructor(gl, nRows, nColumns, size) {
+    constructor(gl, nRows, nColumns, size, textureID) {
         this.gl = gl;
         this.nRows = nRows;
         this.nColumns = nColumns;
         this.size = size;
+        this.textureID = textureID;
 
         this.terrainData = this.genTerrainData(this.nRows, this.nColumns);
         this.pointsArray = [];
-        this.colorsArray = [];
+        this.texCoords = [];
+        // this.colorsArray = [];
         this.normalsArray = [];
 
         let gridValues = this.prepMesh(this.nRows, this.nColumns);
@@ -15,24 +17,21 @@ class Terrain {
         let gridColors = gridValues.gridColors;
         let gridPoints = gridValues.gridPoints;
 
+        let rowScale = gridPoints.length - 1;
+        let colScale = gridPoints[0].length - 1;
         for (let i = 0; i < gridPoints.length - 1; i++) {
             for (let j = 0; j < gridPoints[i].length - 1; j++) {
                 this.pointsArray.push(
                     gridPoints[i][j], gridPoints[i + 1][j], gridPoints[i + 1][j + 1],
                     gridPoints[i][j], gridPoints[i + 1][j + 1], gridPoints[i][j + 1],
                 )
-                // this.colorsArray.push(
-                //     gridColors[i][j], gridColors[i + 1][j], gridColors[i + 1][j + 1],
-                //     gridColors[i][j], gridColors[i + 1][j + 1], gridColors[i][j + 1],
-                // )
-                this.colorsArray.push(
-                    .69, .68, .45, 1,
-                    .8, .68, .45, 1,
-                    .69, .68, .45, 1,
-                    .69, .68, .1, 1,
-                    .4, .68, .45, 1,
-                    .69, .68, .45, 1,
-
+                this.texCoords.push(
+                    j / colScale, i / rowScale,
+                    j / colScale, (i + 1) / rowScale,
+                    (j + 1) / colScale, (i + 1) / rowScale,
+                    j / colScale, i / rowScale,
+                    j / colScale, (i + 1) / rowScale,
+                    (j + 1) / colScale, (i + 1) / rowScale,
                 )
             }
         }
@@ -50,13 +49,11 @@ class Terrain {
 
         }
 
-
-
         this.vectorBuffer = loadBuffer(this.gl, flatten(this.pointsArray), gl.STATIC_DRAW);
-        this.colorBuffer = loadBuffer(this.gl, flatten(this.colorsArray), gl.STATIC_DRAW);
-        this.normalBuffer = loadBuffer(this.gl, flatten(this.normalsArray), gl.STATIC_DRAW);
-
         this.numVertices = this.pointsArray.length;
+        this.texBuffer = loadBuffer(this.gl, flatten(this.texCoords), gl.STATIC_DRAW);
+        // this.colorBuffer = loadBuffer(this.gl, flatten(this.colorsArray), gl.STATIC_DRAW);
+        this.normalBuffer = loadBuffer(this.gl, flatten(this.normalsArray), gl.STATIC_DRAW);
     }
 
     draw(programInfo, bufferAttributes) {
@@ -68,6 +65,10 @@ class Terrain {
         }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
+    }
+
+    getTextureID() {
+        return this.textureID;
     }
 
     prepMesh(nRows, nColumns) {
@@ -124,8 +125,8 @@ class Terrain {
         return this.vectorBuffer;
     }
 
-    getColorBuffer() {
-        return this.colorBuffer;
+    getTexBuffer() {
+        return this.texBuffer;
     }
 
     getNormalBuffer() {
@@ -149,7 +150,7 @@ class Terrain {
     }
 
     getBuffers() {
-        return [this.getVertexBuffer(), this.getColorBuffer(), this.getNormalBuffer()];
+        return [this.getVertexBuffer(), this.getTexBuffer(), this.getNormalBuffer()];
     }
 
 

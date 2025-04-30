@@ -1,11 +1,12 @@
 "use strict";
 
 var DrawableObjectArray = [];
-
+const imageURLS = [
+    "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
+    "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
+]
 function main() {
-    var imageURLS = [
-        "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png"
-    ]
+
     loadImages(imageURLS, init);
 }
 
@@ -18,13 +19,14 @@ function init(images) {
     if (!gl) { alert("WebGL isn't available"); }
 
 
-    var programDataTerrain = new ProgramData(gl, "vertex-shader-terrain", "fragment-shader-terrain",
-        ["a_position", "a_color", "a_normal"],);
-    var programDataSkyBox = new ProgramData(gl, "vertex-shader-skybox", "fragment-shader-skybox",
+    var programDataPhongTexture = new ProgramData(gl, "vertex-shader-phong-texture", "fragment-shader-phong-texture",
+        ["a_position", "a_texcoord", "a_normal"],);
+    var programDataTexture = new ProgramData(gl, "vertex-shader-texture", "fragment-shader-texture",
         ["a_position", "a_texcoord"],);
+    var programDataPhong = new ProgramData(gl, "vertex-shader-phong", "fragment-shader-phong",
+        ["a_position", "a_color", "a_normal"],);
 
-
-    var terrainUniforms = {
+    var phongTextureUniforms = {
         "modelView": 0,
         "projection": 0,
         "ambientProduct": 0,
@@ -33,41 +35,78 @@ function init(images) {
         "lightPosition": 0,
         "shininess": 0,
         "eyePosition": 0,
+        "u_texture": 0,
     };
 
-    var skyboxUniforms = {
+    var textureUniforms = {
         "modelView": 0,
         "projection": 0,
         "u_texture": 0,
     }
 
-    for (const [name] of Object.entries(terrainUniforms)) {
-        programDataTerrain.getUniformInfo(name);
+    var phongUniforms = {
+        "modelView": 0,
+        "projection": 0,
+        "ambientProduct": 0,
+        "diffuseProduct": 0,
+        "specularProduct": 0,
+        "lightPosition": 0,
+        "shininess": 0,
+        "eyePosition": 0,
     }
 
-    for (const [name] of Object.entries(skyboxUniforms)) {
-        programDataSkyBox.getUniformInfo(name);
+    for (const [name] of Object.entries(phongTextureUniforms)) {
+        programDataPhongTexture.getUniformInfo(name);
+    }
+
+    for (const [name] of Object.entries(textureUniforms)) {
+        programDataTexture.getUniformInfo(name);
+    }
+
+    for (const [name] of Object.entries(textureUniforms)) {
+        programDataPhong.getUniformInfo(name);
+    }
+
+    var textures = [];
+    for (var i = 0; i < images.length; ++i) {
+        var texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + i);
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        // Upload the image into the texture.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[i]);
+
+        // add the texture to the array of textures.
+        textures.push(texture);
     }
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     var aspect = canvas.width / canvas.height;
-    var lookInc = .5;
+    var lookInc = .1;
     var cameraAtInc = .1;
     var boundingInc = .1;
     var angleInc = 10;
     var lightInc = .1;
 
-    var cameraLocation = [0, 4.9, 1.6];
-    var lookingAt = [-2, -1.5, 20];
+    var cameraLocation = [0, 4.5, 7];
+    var lookingAt = [0, 6, -3];
     var boundingNear = .3;
-    var boundingFar = 50;
+    var boundingFar = 100;
     var viewAngle = 30;
 
-    var lightPosition = vec4(0, .5, 0, 1);
-    var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
+    var lightPosition = vec4(0, 6, -3, 1);
+    var lightAmbient = vec4(.6, .6, .6, 1.0);
     var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
     var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
@@ -78,21 +117,30 @@ function init(images) {
     var ambientProduct = mult(lightAmbient, materialAmbient);
     var diffuseProduct = mult(lightDiffuse, materialDiffuse);
     var specularProduct = mult(lightSpecular, materialSpecular);
-    terrainUniforms["ambientProduct"] = flatten(ambientProduct);
-    terrainUniforms["diffuseProduct"] = flatten(diffuseProduct);
-    terrainUniforms["specularProduct"] = flatten(specularProduct);
-    terrainUniforms["shininess"] = materialShininess;
 
+    phongTextureUniforms["ambientProduct"] = flatten(ambientProduct);
+    phongTextureUniforms["diffuseProduct"] = flatten(diffuseProduct);
+    phongTextureUniforms["specularProduct"] = flatten(specularProduct);
+    phongTextureUniforms["shininess"] = materialShininess;
+
+    phongUniforms["ambientProduct"] = flatten(ambientProduct);
+    phongUniforms["diffuseProduct"] = flatten(diffuseProduct);
+    phongUniforms["specularProduct"] = flatten(specularProduct);
+    phongUniforms["shininess"] = materialShininess;
 
     DrawableObjectArray.push(
-        DrawableObject(new Terrain(gl, 512, 512, 20), programDataTerrain,
-            [bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
+        DrawableObject(new Terrain(gl, 512, 512, 20, 1), programDataPhongTexture,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
         ),
     );
 
 
-    var skyBoxObject = DrawableObject(new SkyBox(gl, 20, images[0]), programDataSkyBox,
+    var skyBoxObject = DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)]
+    );
+
+    var lightFrameObject = DrawableObject(new LightFrame(gl, .5, lightPosition), programDataPhong,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
     );
 
     manageControls();
@@ -103,41 +151,56 @@ function init(images) {
 
     function render() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
         let eye = vec3(cameraLocation[0], cameraLocation[1], cameraLocation[2]);
         let at = calculateTarget(lookingAt);
         let up = vec3(0, 1, 0);
 
         let mvMatrix = lookAt(eye, at, up);
         let pMatrix = perspective(viewAngle, aspect, boundingNear, boundingFar);
+        ambientProduct = mult(lightAmbient, materialAmbient);
+        diffuseProduct = mult(lightDiffuse, materialDiffuse);
+        specularProduct = mult(lightSpecular, materialSpecular);
+        programDataPhongTexture.use();
 
-        programDataTerrain.use();
+        phongTextureUniforms["eyePosition"] = flatten(eye);
+        phongTextureUniforms["lightPosition"] = flatten(lightPosition);
+        phongTextureUniforms["ambientProduct"] = flatten(ambientProduct);
+        phongTextureUniforms["diffuseProduct"] = flatten(diffuseProduct);
+        phongTextureUniforms["specularProduct"] = flatten(specularProduct);
+        phongTextureUniforms["shininess"] = materialShininess;
+        phongTextureUniforms["modelView"] = flatten(mvMatrix);
+        phongTextureUniforms["projection"] = flatten(pMatrix);
+        phongTextureUniforms["u_texture"] = DrawableObjectArray[0].drawable.getTextureID();
 
-        terrainUniforms["eyePosition"] = flatten(eye);
-        terrainUniforms["lightPosition"] = flatten(lightPosition);
-        terrainUniforms["ambientProduct"] = flatten(ambientProduct);
-        terrainUniforms["diffuseProduct"] = flatten(diffuseProduct);
-        terrainUniforms["specularProduct"] = flatten(specularProduct);
-        terrainUniforms["shininess"] = materialShininess;
-
-        terrainUniforms["modelView"] = flatten(mvMatrix);
-        terrainUniforms["projection"] = flatten(pMatrix);
-        setUniforms(terrainUniforms, programDataTerrain);
+        setUniforms(phongTextureUniforms, programDataPhongTexture);
 
         DrawableObjectArray.forEach((drawableObject) => {
 
             drawableObject.draw()
         })
 
-        gl.useProgram(programDataSkyBox.program);
-        programDataSkyBox.use();
-        skyboxUniforms["modelView"] = flatten(mvMatrix);
-        skyboxUniforms["projection"] = flatten(pMatrix);
-        skyboxUniforms["u_texture"] = 0;
-        setUniforms(skyboxUniforms, programDataSkyBox);
+        // gl.useProgram(programDataTexture.program);
+        programDataTexture.use();
+        textureUniforms["modelView"] = flatten(mvMatrix);
+        textureUniforms["projection"] = flatten(pMatrix);
+        textureUniforms["u_texture"] = skyBoxObject.drawable.getTextureID();
+        setUniforms(textureUniforms, programDataTexture);
 
         skyBoxObject.draw();
-        // gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
 
+        programDataPhong.use();
+        phongUniforms["eyePosition"] = flatten(eye);
+        phongUniforms["lightPosition"] = flatten(lightPosition);
+        phongUniforms["ambientProduct"] = flatten(ambientProduct);
+        phongUniforms["diffuseProduct"] = flatten(diffuseProduct);
+        phongUniforms["specularProduct"] = flatten(specularProduct);
+        phongUniforms["shininess"] = materialShininess;
+        phongUniforms["modelView"] = flatten(mvMatrix);
+        phongUniforms["projection"] = flatten(pMatrix);        // gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
+        setUniforms(phongUniforms, programDataPhong);
+
+        lightFrameObject.draw();
     }
 
     function manageControls() {
@@ -235,9 +298,10 @@ function setUniforms(map, programData) {
 }
 
 function calculateTarget(look) {
-    return [
-        look[2] * Math.sin(look[0]),
-        look[2] * Math.cos(look[1]),
-        look[2] * Math.cos(look[0]),
-    ]
+    return look;
+    // return [
+    //     look[2] * Math.sin(look[0]),
+    //     look[2] * Math.cos(look[1]),
+    //     look[2] * Math.cos(look[0]),
+    // ]
 }

@@ -15,10 +15,11 @@ rock texture: Amal Kumar Polyhaven
 <script type="text/javascript" src="MV.js"></script>
 <script type="text/javascript" src="terrainDataRaw.js"></script>
 <script type="text/javascript" src="ProgramData.js"></script>
-<script src="drawables/Terrain.js"></script>
-<script src="drawables/SkyBox.js"></script>
 <script src="helper.js"></script>
 <script src="Camera.js"></script>
+<script src="drawables/Terrain.js"></script>
+<script src="drawables/SkyBox.js"></script>
+<script src="drawables/LightFrame.js"></script>
 <script type="text/javascript" src="main.js"></script>
 
 <body>
@@ -30,14 +31,14 @@ rock texture: Amal Kumar Polyhaven
 
 </html>
 
-<script id="vertex-shader-terrain" type="x-shader/x-vertex">
+<script id="vertex-shader-phong-texture" type="x-shader/x-vertex">
 
     attribute vec4 a_position;
-    attribute vec4 a_color;
+   attribute vec2 a_texcoord;
+
     attribute vec3 a_normal;
     
-    varying vec4 v_color;
-    varying vec3 v_normal;
+   varying vec2 v_texcoord;
     varying vec3 v_light;
     
     uniform mat4 modelView;
@@ -54,9 +55,11 @@ rock texture: Amal Kumar Polyhaven
         if (lightPosition.w == 0.0) L = normalize( lightPosition.xyz);
         else L = normalize( (lightPosition - a_position) .xyz);
 
+        vec3 v_normal = mat3(modelView) * a_normal.xyz;
+
         vec3 E = normalize( eyePosition);
         vec3 H = normalize( L + E );
-        vec3 N = normalize(a_normal);
+        vec3 N = normalize(v_normal);
 
         vec4 ambient = ambientProduct;
 
@@ -72,35 +75,103 @@ rock texture: Amal Kumar Polyhaven
 
         gl_Position = projection*modelView*a_position;
     
-        v_normal = mat3(modelView) * a_normal;
         
         v_light = (ambient + diffuse + specular).xyz;
 
-        v_color = a_color;
+        v_texcoord = a_texcoord;
     } 
     </script>
 
-<script id="fragment-shader-terrain" type="x-shader/x-fragment">
+<script id="fragment-shader-phong-texture" type="x-shader/x-fragment">
 
     precision mediump float;
     
-    varying vec4 v_color;
-    varying vec3 v_normal;
+    varying vec2 v_texcoord;
+
     varying vec3 v_light;
     
-    
-    
+    uniform sampler2D u_texture;
+
     void
     main()
     {
-        vec3 normal = normalize(v_normal);
     
-        gl_FragColor = v_color;
+        gl_FragColor = texture2D(u_texture, v_texcoord);
        gl_FragColor.rgb *= v_light;
     }
     </script>
 
-<script id="vertex-shader-skybox" type="x-shader/x-vertex">
+<script id="vertex-shader-phong" type="x-shader/x-vertex">
+
+        attribute vec4 a_position;
+        attribute vec4 a_normal;
+        attribute vec4 a_color;
+
+        varying vec4 fColor;
+        varying vec3 v_light;
+        
+        uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+        uniform mat4 modelView;
+        uniform mat4 projection;
+        uniform vec4 lightPosition;
+        uniform float shininess;
+        uniform vec3 eyePosition;
+        
+        
+        void
+        main()
+        {
+            vec3 L;
+            if(lightPosition.w == 0.0)  L = normalize( lightPosition.xyz);
+            else  L = normalize( (lightPosition - a_position) .xyz);
+        
+            
+            // Transform vertex normal into eye coordinates
+            
+            vec3 v_normal = mat3(modelView) * a_normal.xyz;
+
+            vec3 E = normalize( eyePosition);
+            vec3 H = normalize( L + E );
+            vec3 N = normalize(v_normal);  
+                  
+            // Compute terms in the illumination equation
+            vec4 ambient = ambientProduct;
+        
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*diffuseProduct;
+        
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularProduct;
+            
+            if( dot(L, N) < 0.0 ) {
+            specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+
+            gl_Position = projection * modelView * a_position;
+            
+            v_light = (ambient + diffuse +specular).xyz;
+            fColor = a_color;
+        }
+        </script>
+
+<script id="fragment-shader-phong" type="x-shader/x-fragment">
+
+        precision mediump float;
+        varying vec4 fColor;
+        varying vec3 v_light;
+
+        void
+        main()
+        {
+
+
+            gl_FragColor = fColor;
+            //gl_FragColor.rgb *= v_light;
+        
+        }
+        </script>
+
+<script id="vertex-shader-texture" type="x-shader/x-vertex">
         attribute vec4 a_position;
         attribute vec2 a_texcoord;
         
@@ -118,7 +189,7 @@ rock texture: Amal Kumar Polyhaven
         }
         </script>
 <!-- fragment shader -->
-<script id="fragment-shader-skybox" type="x-shader/x-fragment">
+<script id="fragment-shader-texture" type="x-shader/x-fragment">
         precision mediump float;
         
         // Passed in from the vertex shader.
