@@ -38,16 +38,44 @@ rock texture: Amal Kumar Polyhaven
     
     varying vec4 v_color;
     varying vec3 v_normal;
+    varying vec3 v_light;
     
     uniform mat4 modelView;
     uniform mat4 projection;
+
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform vec4 lightPosition;
+    uniform float shininess;
+    uniform vec3 eyePosition;
     
     void main() 
     {
+        vec3 L;
+        if (lightPosition.w == 0.0) L = normalize( lightPosition.xyz);
+        else L = normalize( (lightPosition - a_position) .xyz);
+
+        vec3 E = normalize( eyePosition);
+        vec3 H = normalize( L + E );
+        vec3 N = normalize(a_normal);
+
+        vec4 ambient = ambientProduct;
+
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
+    
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
+        
+        if( dot(L, N) < 0.0 ) {
+        specular = vec4(0.0, 0.0, 0.0, 1.0);
+        } 
+
         gl_Position = projection*modelView*a_position;
     
         v_normal = mat3(modelView) * a_normal;
-    
+        
+        v_light = (ambient + diffuse + specular).xyz;
+
         v_color = a_color;
     } 
     </script>
@@ -58,18 +86,17 @@ rock texture: Amal Kumar Polyhaven
     
     varying vec4 v_color;
     varying vec3 v_normal;
+    varying vec3 v_light;
     
-    uniform vec3 uReverseLightDirection;
     
     
     void
     main()
     {
         vec3 normal = normalize(v_normal);
-       float light = dot(normal, uReverseLightDirection);
     
         gl_FragColor = v_color;
-       gl_FragColor.rgb *= light;
+       gl_FragColor.rgb *= v_light;
     }
     </script>
 

@@ -20,7 +20,12 @@ window.onload = function init() {
     var terrainUniforms = {
         "modelView": 0,
         "projection": 0,
-        "uReverseLightDirection": 0,
+        "ambientProduct": 0,
+        "diffuseProduct": 0,
+        "specularProduct": 0,
+        "lightPosition": 0,
+        "shininess": 0,
+        "eyePosition": 0,
     };
 
     var skyboxUniforms = {
@@ -54,10 +59,22 @@ window.onload = function init() {
     var boundingFar = 50;
     var viewAngle = 30;
 
-    var lightDirection = [.2, -.9, -.3];
+    var lightPosition = vec4(0, 5, .5, .5, 0.0);
+    var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
+    var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+    var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
-
-
+    var materialAmbient = vec4(1.0, 0.8, 0.0, 1.0);
+    var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
+    var materialSpecular = vec4(1.0, 0.8, 0.0, 1.0);
+    var materialShininess = 20.0;
+    var ambientProduct = mult(lightAmbient, materialAmbient);
+    var diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    var specularProduct = mult(lightSpecular, materialSpecular);
+    terrainUniforms["ambientProduct"] = flatten(ambientProduct);
+    terrainUniforms["diffuseProduct"] = flatten(diffuseProduct);
+    terrainUniforms["specularProduct"] = flatten(specularProduct);
+    terrainUniforms["shininess"] = materialShininess;
 
 
     DrawableObjectArray.push(
@@ -79,7 +96,6 @@ window.onload = function init() {
 
     function render() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        let lightPositionNorm = normalize(lightDirection)
         let eye = vec3(cameraLocation[0], cameraLocation[1], cameraLocation[2]);
         let at = calculateTarget(lookingAt);
         let up = vec3(0, 1, 0);
@@ -89,9 +105,15 @@ window.onload = function init() {
 
         programDataTerrain.use();
 
+        terrainUniforms["eyePosition"] = flatten(eye);
+        terrainUniforms["lightPosition"] = flatten(lightPosition);
+        terrainUniforms["ambientProduct"] = flatten(ambientProduct);
+        terrainUniforms["diffuseProduct"] = flatten(diffuseProduct);
+        terrainUniforms["specularProduct"] = flatten(specularProduct);
+        terrainUniforms["shininess"] = materialShininess;
+
         terrainUniforms["modelView"] = flatten(mvMatrix);
         terrainUniforms["projection"] = flatten(pMatrix);
-        terrainUniforms["uReverseLightDirection"] = flatten(lightPositionNorm);
         setUniforms(terrainUniforms, programDataTerrain);
 
         DrawableObjectArray.forEach((drawableObject) => {
@@ -139,7 +161,7 @@ window.onload = function init() {
 
                 }
             } else if (pressedKeys["l"]) {
-                adjustControlArray(event, lightDirection, lightInc);
+                adjustControlArray(event, lightPosition, lightInc);
             }
             else {
                 adjustControlArray(event, cameraLocation, cameraAtInc);
@@ -158,7 +180,7 @@ window.onload = function init() {
 
 
             // console.log("CameraLocation: " + cameraLocation);
-            console.log("Light: " + normalize(lightDirection))
+            console.log("Light: " + normalize(lightPosition))
             console.log("LookingAt: " + lookingAt);
             console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
             console.log("Position: " + cameraLocation)
