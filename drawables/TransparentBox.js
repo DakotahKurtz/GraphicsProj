@@ -1,9 +1,8 @@
-class LightFrame {
+class TransparentBox {
     constructor(gl, frameDimension, lightPosition) {
         this.gl = gl;
         this.frameDimension = frameDimension;
         this.lightPosition = lightPosition;
-        console.log("FrameDim: " + frameDimension + ", lightPOS: " + lightPosition);
         var vect = (x, y, z) => {
             return {
                 x: x,
@@ -12,16 +11,15 @@ class LightFrame {
             }
         };
 
-        let color = [1, .8, .75];
-        let opacity = .1;
+        // let points = []
+
+        let color = [0, 0, 1, .5];
+        let opacity = 1;
         let offset = this.frameDimension / 2;
 
         let upperLeftFront = vect(lightPosition[0] - offset, lightPosition[1] + offset, lightPosition[2] + offset);
-        let bottomRightRear = vect(-upperLeftFront.x, lightPosition[1] - offset, lightPosition[2] - offset);
-        // console.log("lightPos: " + lightPosition);
-        // console.log("offset: " + offset + " ulf.y: " + upperLeftFront.y + " brr.y: " + bottomRightRear.y)
-        // console.log("ULF: " + upperLeftFront.x);
-        // console.log("BRR: " + bottomRightRear.x)
+        let bottomRightRear = vect(lightPosition[0] + offset, lightPosition[1] - offset, lightPosition[2] - offset);
+
         var rectanglePoints = (p1, p2, p3, p4) => {
             return [
                 p1.x, p1.y, p1.z,
@@ -85,31 +83,23 @@ class LightFrame {
             ))
         }
 
-        for (let i = 0; i < rectangles.length; i++) {
-            faces.push(rectanglePoints(
-                rectangles[i][0],
-                rectangles[i][1],
-                rectangles[i][2],
-                rectangles[i][3],
-            ))
+        let points = [];
+        for (let i = 0; i < faces.length; i++) {
+            for (let j = 0; j < faces[i].length; j++) {
+                points.push(faces[i][j]);
+            }
         }
 
-        let points = flatten(faces);
+
+        let tColor = [];
+        for (let i = 0; i < points.length; i++) {
+            tColor.push(//color[0], color[1], color[2], color[3],
+                // color[0], color[1], color[2], color[3],
+                color[0], color[1], color[2], color[3],)
+        }
+
+
         let normals = [
-            -1, 0, 0, // left
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-
-            0, 1, 0, // up
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-
             1, 0, 0, // right
             1, 0, 0,
             1, 0, 0,
@@ -123,13 +113,20 @@ class LightFrame {
             0, -1, 0,
             0, -1, 0,
             0, -1, 0,
+            -1, 0, 0, // left
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
 
-            0, 0, -1, // rear
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
+
+            0, 1, 0, // up
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
 
             0, 0, 1, // front
             0, 0, 1,
@@ -137,69 +134,31 @@ class LightFrame {
             0, 0, 1,
             0, 0, 1,
             0, 0, 1,
+            0, 0, -1, // rear
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
 
-            // inside walls
-            // left
-            1, 0, 0,
-            1, 0, 0,
-            1, 0, 0,
-            1, 0, 0,
-            1, 0, 0,
-            1, 0, 0,
-            // up
-            0, -1, 0,
-            0, -1, 0,
-            0, -1, 0,
-            0, -1, 0,
-            0, -1, 0,
-            0, -1, 0,
-            // right wall
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            -1, 0, 0,
-            // bottom wall
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            0, 1, 0,
-            // back wall
-            0, 0, 1,
-            0, 0, 1,
-            0, 0, 1,
-            0, 0, 1,
-            0, 0, 1,
-            0, 0, 1,
 
-            //front
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
-            0, 0, -1,
+
+
 
         ];
 
-        let colors = [];
-        for (let i = 0; i < points.length / 3; i++) {
-            colors.push(color[0], color[1], color[2], opacity);
-        }
+
 
         this.vBuff = loadBuffer(this.gl, new Float32Array(points), this.gl.STATIC_DRAW);
         this.nBuff = loadBuffer(this.gl, new Float32Array(normals), gl.STATIC_DRAW);
-        this.cBuff = loadBuffer(this.gl, new Float32Array(colors), gl.STATIC_DRAW);
+        this.cBuff = loadBuffer(this.gl, new Float32Array(tColor), gl.STATIC_DRAW);
 
         this.numVertices = (points.length) / 3;
     }
 
     draw(programInfo, bufferAttributes) {
-
         let buffers = this.getBuffers();
+
         for (let i = 0; i < bufferAttributes.length; i++) {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffers[i]);
             this.gl.vertexAttribPointer(programInfo.getBufferLocations()[i], bufferAttributes[i].size, bufferAttributes[i].type, bufferAttributes[i].normalize, bufferAttributes[i].stride, bufferAttributes[i].offset);

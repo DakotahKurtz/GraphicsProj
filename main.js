@@ -5,10 +5,59 @@ const imageURLS = [
     "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
     "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
 ]
+
+
+
 function main() {
 
     loadImages(imageURLS, init);
 }
+
+var materials = (lighting, shininess) => {
+    return {
+        ambient: lighting.ambient,
+        diffuse: lighting.diffuse,
+        specular: lighting.specular,
+        shininess: shininess,
+    }
+}
+
+var lighting = (ambient, diffuse, specular) => {
+    return {
+        ambient: ambient,
+        diffuse: diffuse,
+        specular: specular,
+    }
+}
+
+var waterMaterials = materials(
+    lighting(
+        [.1, .1, .1, 1],
+        [.6, .6, .6, 1],
+        [.9, .9, .9, 1]),
+    15);
+
+var spiralMaterials = materials(
+    lighting(
+        [0, 0, .1, 1],
+        [.2, .2, .3, 1],
+        [.8, .8, .9, 1]),
+    1
+);
+
+
+var terrainMaterials = materials(
+    lighting(
+        [1.0, 1.0, 1.0, 1.0],
+        [.6, .6, .6, 1],
+        [.4, .4, .4, 1],
+    ), 20);
+
+
+var then = 0;
+var animID;
+var isPlaying = false;
+var terrainGridDim = 256;
 
 main();
 
@@ -24,7 +73,7 @@ function init(images) {
     var programDataTexture = new ProgramData(gl, "vertex-shader-texture", "fragment-shader-texture",
         ["a_position", "a_texcoord"],);
     var programDataPhong = new ProgramData(gl, "vertex-shader-phong", "fragment-shader-phong",
-        ["a_position", "a_color", "a_normal"],);
+        ["vPosition", "vNormal", "a_color"],);
 
     var phongTextureUniforms = {
         "modelView": 0,
@@ -47,6 +96,7 @@ function init(images) {
     var phongUniforms = {
         "modelView": 0,
         "projection": 0,
+        "objectMatrix": flatten(identity()),
         "ambientProduct": 0,
         "diffuseProduct": 0,
         "specularProduct": 0,
@@ -63,7 +113,7 @@ function init(images) {
         programDataTexture.getUniformInfo(name);
     }
 
-    for (const [name] of Object.entries(textureUniforms)) {
+    for (const [name] of Object.entries(phongUniforms)) {
         programDataPhong.getUniformInfo(name);
     }
 
@@ -94,93 +144,152 @@ function init(images) {
 
     var aspect = canvas.width / canvas.height;
     var lookInc = .1;
-    var cameraAtInc = .1;
-    var boundingInc = .1;
-    var angleInc = 10;
+    var cameraAtInc = 1;
+    var boundingInc = 1;
+    var angleInc = .1;
     var lightInc = .1;
+    var depthChangeInc = .1;
+    var waterLevel = 1.19;
+    var waterInc = .1;
 
-    var cameraLocation = [0, 4.5, 7];
-    var lookingAt = [0, 6, -3];
+    var cameraLocation = [11, 6, 0];
+    var lookingAt = [0, 6, 0];
+
+    var camera = new Camera(cameraLocation, lookingAt, [0, 1, 0]);
+
     var boundingNear = .3;
     var boundingFar = 100;
     var viewAngle = 30;
 
-    var lightPosition = vec4(0, 6, -3, 1);
-    var lightAmbient = vec4(.6, .6, .6, 1.0);
-    var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+    var lightPosition = vec4(0, 9, 0, 1);
+    var lightAmbient = vec4(.3, .3, .3, 1.0);
+    var lightDiffuse = vec4(.6, .6, .6, 1.0);
     var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
-    var materialAmbient = vec4(1.0, 0.8, 0.0, 1.0);
-    var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
-    var materialSpecular = vec4(1.0, 0.8, 0.0, 1.0);
-    var materialShininess = 20.0;
-    var ambientProduct = mult(lightAmbient, materialAmbient);
-    var diffuseProduct = mult(lightDiffuse, materialDiffuse);
-    var specularProduct = mult(lightSpecular, materialSpecular);
+    var worldLight = lighting(lightAmbient, lightDiffuse, lightSpecular);
 
-    phongTextureUniforms["ambientProduct"] = flatten(ambientProduct);
-    phongTextureUniforms["diffuseProduct"] = flatten(diffuseProduct);
-    phongTextureUniforms["specularProduct"] = flatten(specularProduct);
-    phongTextureUniforms["shininess"] = materialShininess;
 
-    phongUniforms["ambientProduct"] = flatten(ambientProduct);
-    phongUniforms["diffuseProduct"] = flatten(diffuseProduct);
-    phongUniforms["specularProduct"] = flatten(specularProduct);
-    phongUniforms["shininess"] = materialShininess;
+    // initialize objects to draw
+    const MAP_SIZE = 20;
 
-    DrawableObjectArray.push(
-        DrawableObject(new Terrain(gl, 512, 512, 20, 1), programDataPhongTexture,
-            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
-        ),
-    );
+    var terrainObject = DrawableObject(new Terrain(gl, terrainGridDim, terrainGridDim, MAP_SIZE, 1), programDataPhongTexture,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
+        , terrainMaterials);
 
+    let terrainArray = terrainObject.drawable.getTerrainArray();
+
+
+    var riverObject = DrawableObject(new River(gl, terrainArray, waterLevel, 0), programDataPhong,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        waterMaterials);
+
+    var trees = [];
+    let objectPlacementAlgorithm = terrainNoiseAlgorithm(riverObject.drawable.getWaterArray(), 4);
+    let objectPlacement = objectPlacementAlgorithm.state;
+
+
+    let randomIncPOS = 0;
+    let randomIncHeight = .5;
+    let randomIncBase = .1;
+    let randomIncDecrement = .1;
+    let randomIncSteps = 5;
+
+    let treePos = [[1, 1]];
+
+    for (let i = 0; i < objectPlacement.length; i++) {
+        for (let j = 0; j < objectPlacement[i].length; j++) {
+            if (objectPlacement[i][j] == 4) {
+                let x = terrainArray[i][j][0];
+                let z = terrainArray[i][j][2]
+                let y = terrainArray[i][j][1];
+                let rand = getRandomInt(0, 1) == 0 ? -1 : 1;
+                rand = 1;
+
+                trees.push(
+                    DrawableObject(
+                        new Spiral(
+                            gl,
+                            [x, y, z],
+                            1.5 + getRandomFloat(-randomIncHeight, randomIncHeight),
+                            .15 + getRandomFloat(-randomIncBase, randomIncBase),
+                            .8,
+                            toRadians(rand * getRandomFloat(30, 40)),
+                            15 + getRandomInt(0, randomIncSteps)
+                        ),
+                        programDataPhong,
+                        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+                        spiralMaterials,));
+            }
+        }
+    }
+
+    var GoLObject = DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 10, -5], 1), programDataPhong,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        waterMaterials,);
 
     var skyBoxObject = DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)]
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
     );
 
-    var lightFrameObject = DrawableObject(new LightFrame(gl, .5, lightPosition), programDataPhong,
+    var lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-    );
+        waterMaterials,);
+
+    var spiralObject = DrawableObject(new Spiral(gl, [0, 6, 0], 5, .1, .8, toRadians(40), 20), programDataPhong,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        waterMaterials,);
+
+    var sierpinskiObject = DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        waterMaterials);
+
+    const keyframes = [
+        { position: [0, 6, 5], lookAt: [0, 0, 0], duration: 6 },
+        { position: [5, 6, 5], lookAt: [0, 0, 0], duration: 2 },
+        // { position: [5, 6, 0], lookAt: [0, 0, 0], duration: 2 }
+    ];
+
+    const cameraPath = new CameraPath(keyframes);
 
     manageControls();
 
+    startAnimation();
 
+    function startAnimation() {
+        if (isPlaying) {
+            cancelAnimationFrame(animID);
+        }
+        isPlaying = true;
+        animID = requestAnimationFrame(render);
+    }
 
-    render();
-
-    function render() {
+    function render(now) {
+        now *= 0.001;
+        let deltaTime = now - then;
+        then = now;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        let eye = vec3(cameraLocation[0], cameraLocation[1], cameraLocation[2]);
-        let at = calculateTarget(lookingAt);
-        let up = vec3(0, 1, 0);
+        cameraPath.update(deltaTime, camera);
 
-        let mvMatrix = lookAt(eye, at, up);
+        let mvMatrix = camera.getViewMatrix();
+        let eye = camera.getPosition();
+
         let pMatrix = perspective(viewAngle, aspect, boundingNear, boundingFar);
-        ambientProduct = mult(lightAmbient, materialAmbient);
-        diffuseProduct = mult(lightDiffuse, materialDiffuse);
-        specularProduct = mult(lightSpecular, materialSpecular);
+
+
         programDataPhongTexture.use();
 
         phongTextureUniforms["eyePosition"] = flatten(eye);
         phongTextureUniforms["lightPosition"] = flatten(lightPosition);
-        phongTextureUniforms["ambientProduct"] = flatten(ambientProduct);
-        phongTextureUniforms["diffuseProduct"] = flatten(diffuseProduct);
-        phongTextureUniforms["specularProduct"] = flatten(specularProduct);
-        phongTextureUniforms["shininess"] = materialShininess;
         phongTextureUniforms["modelView"] = flatten(mvMatrix);
         phongTextureUniforms["projection"] = flatten(pMatrix);
-        phongTextureUniforms["u_texture"] = DrawableObjectArray[0].drawable.getTextureID();
+        phongTextureUniforms["u_texture"] = terrainObject.drawable.getTextureID();
+        setMaterials(phongTextureUniforms, terrainObject.materials, worldLight);
 
         setUniforms(phongTextureUniforms, programDataPhongTexture);
 
-        DrawableObjectArray.forEach((drawableObject) => {
+        terrainObject.draw();
 
-            drawableObject.draw()
-        })
-
-        // gl.useProgram(programDataTexture.program);
         programDataTexture.use();
         textureUniforms["modelView"] = flatten(mvMatrix);
         textureUniforms["projection"] = flatten(pMatrix);
@@ -192,15 +301,57 @@ function init(images) {
         programDataPhong.use();
         phongUniforms["eyePosition"] = flatten(eye);
         phongUniforms["lightPosition"] = flatten(lightPosition);
-        phongUniforms["ambientProduct"] = flatten(ambientProduct);
-        phongUniforms["diffuseProduct"] = flatten(diffuseProduct);
-        phongUniforms["specularProduct"] = flatten(specularProduct);
-        phongUniforms["shininess"] = materialShininess;
+        phongUniforms["objectMatrix"] = flatten(identity());
         phongUniforms["modelView"] = flatten(mvMatrix);
-        phongUniforms["projection"] = flatten(pMatrix);        // gl.drawArrays(skyBoxObject.drawable.getType(), 0, skyBoxObject.drawable.getNumVertices());
+        phongUniforms["projection"] = flatten(pMatrix);
+        setMaterials(phongUniforms, waterMaterials, worldLight);
         setUniforms(phongUniforms, programDataPhong);
 
+        lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),); lightFrameObject.draw();
+
+        let box = LookAtBox(camera);
+        box.draw();
+
+        riverObject.drawable.update(now);
         lightFrameObject.draw();
+        riverObject.draw();
+
+        setMaterials(phongUniforms, spiralMaterials, worldLight);
+        spiralObject.draw();
+        for (let i = 0; i < trees.length; i++) {
+            trees[i].draw();
+        }
+
+        GoLObject.drawable.update(now);
+        GoLObject.draw();
+
+        let sierpinskiMatrix = sierpinskiObject.drawable.update(now);
+        phongUniforms["objectMatrix"] = flatten(sierpinskiMatrix);
+        setUniforms(phongUniforms, programDataPhong);
+        sierpinskiObject.draw();
+
+
+        animID = requestAnimationFrame(render);
+    }
+
+    function setMaterials(uniformData, materials, worldLight) {
+        let ambientProduct = mult(materials.ambient, worldLight.ambient);
+        let diffuseProduct = mult(materials.diffuse, worldLight.diffuse);
+        let specularProduct = mult(materials.specular, worldLight.specular);
+        uniformData["ambientProduct"] = flatten(ambientProduct);
+        uniformData["diffuseProduct"] = flatten(diffuseProduct);
+        uniformData["specularProduct"] = flatten(specularProduct);
+        uniformData["shininess"] = materials.shininess;
+    }
+
+    function LookAtBox(camera) {
+        let size = .2;
+        let position = camera.lookingAt;
+        return DrawableObject(new TransparentBox(gl, size, position), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),);
     }
 
     function manageControls() {
@@ -214,19 +365,138 @@ function init(images) {
             delete pressedKeys[event.key];
         });
 
+        var incrementArray = (array, inc) => {
+            for (let i = 0; i < array.length; i++) {
+                array[i] += inc;
+            }
+        }
+        var lightIncrement = .1;
+
         document.addEventListener('keydown', function (event) {
+            if (pressedKeys["p"]) { // water materials
+                // console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
+                switch (event.key) {
+                    case ("1"):
+                        incrementArray(waterMaterials.ambient, lightIncrement);
+                        break;
+                    case ("2"):
+                        incrementArray(waterMaterials.diffuse, lightIncrement);
+                        break;
+                    case ("3"):
+                        incrementArray(waterMaterials.specular, lightIncrement);
+                        break;
+                    case ("4"):
+                        waterMaterials.shininess += 5;
+                        break;
+                    case ("5"):
+                        waterMaterials.shininess -= 5;
+                        break;
+                    case ("6"):
+                        incrementArray(waterMaterials.ambient, -lightIncrement);
+                        break;
+                    case ("7"):
+                        incrementArray(waterMaterials.diffuse, -lightIncrement);
+                        break;
+                    case ("8"):
+                        incrementArray(waterMaterials.specular, -lightIncrement);
+                        break;
+                }
+
+                console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
+                console.log("Water Shininess: " + waterMaterials.shininess);
+                return;
+
+            }
+            if (pressedKeys["w"]) {
+                switch (event.key) {
+                    case ("1"):
+                        incrementArray(worldLight.ambient, lightIncrement);
+                        break;
+                    case ("2"):
+                        incrementArray(worldLight.diffuse, lightIncrement);
+                        break;
+                    case ("3"):
+                        incrementArray(worldLight.specular, lightIncrement);
+                        break;
+                    case ("4"):
+                        worldLight.shininess += 5;
+                        break;
+                    case ("5"):
+                        worldLight.shininess -= 5;
+                        break;
+                    case ("6"):
+                        incrementArray(worldLight.ambient, -lightIncrement);
+                        break;
+                    case ("7"):
+                        incrementArray(worldLight.diffuse, -lightIncrement);
+                        break;
+                    case ("8"):
+                        incrementArray(worldLight.specular, -lightIncrement);
+                        break;
+
+                }
+                console.log("WorldLight: ", " ambien: " + worldLight.ambient, " diffuse: ", worldLight.diffuse, " specular: ", worldLight.specular)
+                return;
+            }
+
+
+            if (event.key == '0') {
+                camera.setLocked(!camera.isLocked());
+            }
+
             if (pressedKeys["Shift"]) {
-                adjustControlArray(event, lookingAt, lookInc);
+                //adjustControlArray(event, lookingAt, lookInc);
 
                 switch (event.key) {
+                    case ("ArrowLeft"):
+                        camera.rotateTheta(angleInc);
+                        break;
+                    case ("ArrowRight"):
+                        camera.rotateTheta(-angleInc);
+                        break;
+                    case ("ArrowDown"):
+
+                        camera.rotatePhi(-angleInc);
+                        break;
+                    case ("ArrowUp"):
+                        camera.rotatePhi(angleInc);
+                        break;
+                    case ("f"):
+                    case ("F"):
+                        camera.forward(cameraAtInc)
+                        break;
+                    case ("b"):
+                    case ("B"):
+                        camera.backward(cameraAtInc)
+                        break;
+                    case ("r"):
+                    case ("R"):
+                        camera.right(cameraAtInc)
+                        break;
+                    case ("l"):
+                    case ("L"):
+                        camera.left(cameraAtInc)
+                        break;
+                    case ("i"):
+                    case ("I"):
+                        camera.updateFocusDepth(1 - depthChangeInc);
+                        break;
+                    case ("o"):
+                    case ("O"):
+                        camera.updateFocusDepth(1 + depthChangeInc);
+                        break;
                     case ("n"):
-                        boundingNear = Math.max(0, boundingNear - boundingInc);
+                    case ("N"):
+                        boundingNear += boundingInc;
                         break;
                     case ("e"):
-                        boundingFar = Math.max(boundingNear, boundingFar + boundingInc);
+                    case ("E"):
+                        boundingFar += boundingInc;
                         break;
                     case ("a"):
-                        viewAngle = Math.max(10, viewAngle - angleInc);
+                    case ("A"):
+
+                        viewAngle -= angleInc;
                         break;
 
                 }
@@ -234,27 +504,54 @@ function init(images) {
                 adjustControlArray(event, lightPosition, lightInc);
             }
             else {
-                adjustControlArray(event, cameraLocation, cameraAtInc);
+                //adjustControlArray(event, cameraLocation, cameraAtInc);
+
                 switch (event.key) {
+                    case ("ArrowLeft"):
+                        camera.updatePosition([-cameraAtInc, 0, 0]);
+                        break;
+                    case ("ArrowRight"):
+                        camera.updatePosition([cameraAtInc, 0, 0]);
+                        break;
+                    case ("ArrowDown"):
+                        camera.updatePosition([0, -cameraAtInc, 0]);
+                        break;
+                    case ("ArrowUp"):
+                        camera.updatePosition([0, cameraAtInc, 0]);
+                        break;
+                    case ("f"):
+                    case ("F"):
+                        camera.updatePosition([0, 0, -cameraAtInc]);
+                        break;
+                    case ("b"):
+                    case ("B"):
+                        camera.updatePosition([0, 0, cameraAtInc]);
+                        break;
                     case ("n"):
-                        boundingNear = Math.min(boundingFar, boundingNear + boundingInc);
+                    case ("N"):
+                        boundingNear -= boundingInc;
                         break;
                     case ("e"):
-                        boundingFar += boundingInc;
+                    case ("E"):
+                        boundingFar -= boundingInc;
                         break;
                     case ("a"):
+                    case ("A"):
                         viewAngle = Math.min(355, viewAngle + angleInc);
                         break;
                 }
+
             }
 
-
-            // console.log("CameraLocation: " + cameraLocation);
-            console.log("Light: " + lightPosition)
-            console.log("LookingAt: " + lookingAt);
-            console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
-            console.log("Position: " + cameraLocation)
-            render();
+            // console.log("near: " + boundingNear);
+            // console.log("far: " + boundingFar);
+            // console.log("angle: " + viewAngle);
+            // // console.log("CameraLocation: " + cameraLocation);
+            // console.log("Light: " + lightPosition)
+            console.log("LookingAt: " + camera.lookingAt);
+            // console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
+            // console.log("Position: " + cameraLocation)
+            startAnimation();
 
         });
     }
@@ -298,10 +595,11 @@ function setUniforms(map, programData) {
 }
 
 function calculateTarget(look) {
-    return look;
-    // return [
-    //     look[2] * Math.sin(look[0]),
-    //     look[2] * Math.cos(look[1]),
-    //     look[2] * Math.cos(look[0]),
-    // ]
+    // return look;
+    return [
+        look[2] * Math.sin(look[0]),
+        look[2] * Math.cos(look[1]),
+        look[2] * Math.cos(look[0]),
+    ]
 }
+

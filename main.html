@@ -10,16 +10,26 @@ rock texture: Amal Kumar Polyhaven
 </style>
 
 
-
-<script type="text/javascript" src="webgl-utils.js"></script>
-<script type="text/javascript" src="MV.js"></script>
 <script type="text/javascript" src="terrainDataRaw.js"></script>
-<script type="text/javascript" src="ProgramData.js"></script>
-<script src="helper.js"></script>
+
+<script type="text/javascript" src="webgl-utils/webgl-utils.js"></script>
+<script type="text/javascript" src="webgl-utils/MV.js"></script>
+
+<script type="text/javascript" src="webgl-utils/ProgramData.js"></script>
+<script src="webgl-utils/webgl-help.js"></script>
+<script src="utils.js"></script>
+
 <script src="Camera.js"></script>
+<script src="CameraPath.js"></script>
+
 <script src="drawables/Terrain.js"></script>
+<script src="drawables/Spiral.js"></script>
+<script src="drawables/River.js"></script>
 <script src="drawables/SkyBox.js"></script>
-<script src="drawables/LightFrame.js"></script>
+<script src="drawables/TransparentBox.js"></script>
+<script src="drawables/Sierpinski.js"></script>
+<script src="drawables/GoLDisplay.js"></script>
+
 <script type="text/javascript" src="main.js"></script>
 
 <body>
@@ -53,7 +63,7 @@ rock texture: Amal Kumar Polyhaven
     {
         vec3 L;
         if (lightPosition.w == 0.0) L = normalize( lightPosition.xyz);
-        else L = normalize( (lightPosition - a_position) .xyz);
+        else L = normalize( (a_position - lightPosition) .xyz);
 
         vec3 v_normal = mat3(modelView) * a_normal.xyz;
 
@@ -103,72 +113,75 @@ rock texture: Amal Kumar Polyhaven
 
 <script id="vertex-shader-phong" type="x-shader/x-vertex">
 
-        attribute vec4 a_position;
-        attribute vec4 a_normal;
-        attribute vec4 a_color;
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+    attribute vec4 a_color;
+    
+    varying vec4 fColor;
+    varying vec3 light;
+    
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform mat4 objectMatrix;
+    uniform mat4 modelView;
+    uniform mat4 projection;
+    uniform vec4 lightPosition;
+    uniform float shininess;
+    uniform vec3 eyePosition;
+    
+    
+    void
+    main()
+    {
+        vec3 L;
+        if(lightPosition.w == 0.0)  L = normalize( lightPosition.xyz);
+        else  L = normalize( (lightPosition - vPosition) .xyz);
+    
+        vec4 adjustNormals = objectMatrix * normalize(vNormal);
 
-        varying vec4 fColor;
-        varying vec3 v_light;
+        vec3 E = normalize( eyePosition);
         
-        uniform vec4 ambientProduct, diffuseProduct, specularProduct;
-        uniform mat4 modelView;
-        uniform mat4 projection;
-        uniform vec4 lightPosition;
-        uniform float shininess;
-        uniform vec3 eyePosition;
+        vec3 H = normalize( L + E );
+    
         
+        // Transform vertex normal into eye coordinates
         
-        void
-        main()
-        {
-            vec3 L;
-            if(lightPosition.w == 0.0)  L = normalize( lightPosition.xyz);
-            else  L = normalize( (lightPosition - a_position) .xyz);
+        vec3 N = normalize(adjustNormals.xyz);
+    
+        // Compute terms in the illumination equation
+        vec4 ambient = ambientProduct;
+    
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
+    
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
         
-            
-            // Transform vertex normal into eye coordinates
-            
-            vec3 v_normal = mat3(modelView) * a_normal.xyz;
-
-            vec3 E = normalize( eyePosition);
-            vec3 H = normalize( L + E );
-            vec3 N = normalize(v_normal);  
-                  
-            // Compute terms in the illumination equation
-            vec4 ambient = ambientProduct;
+        if( dot(L, N) < 0.0 ) {
+        specular = vec4(0.0, 0.0, 0.0, 1.0);
+        } 
+    
+        gl_Position = projection * modelView * objectMatrix * vPosition;
         
-            float Kd = max( dot(L, N), 0.0 );
-            vec4  diffuse = Kd*diffuseProduct;
-        
-            float Ks = pow( max(dot(N, H), 0.0), shininess );
-            vec4  specular = Ks * specularProduct;
-            
-            if( dot(L, N) < 0.0 ) {
-            specular = vec4(0.0, 0.0, 0.0, 1.0);
-            } 
-
-            gl_Position = projection * modelView * a_position;
-            
-            v_light = (ambient + diffuse +specular).xyz;
-            fColor = a_color;
-        }
+        light = (ambient + diffuse +specular).xyz;
+    
+        fColor = a_color;
+    }
         </script>
 
 <script id="fragment-shader-phong" type="x-shader/x-fragment">
 
-        precision mediump float;
-        varying vec4 fColor;
-        varying vec3 v_light;
+    precision mediump float;
 
-        void
-        main()
-        {
-
-
-            gl_FragColor = fColor;
-            //gl_FragColor.rgb *= v_light;
-        
-        }
+    varying vec4 fColor;
+    varying vec3 light;
+    void
+    main()
+    {
+    
+        gl_FragColor = fColor;
+        gl_FragColor.rgb *= light;
+    
+    }
         </script>
 
 <script id="vertex-shader-texture" type="x-shader/x-vertex">
