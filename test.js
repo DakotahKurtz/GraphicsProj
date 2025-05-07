@@ -194,17 +194,18 @@ class GoL {
 }
 
 
-let gol = new GoL(20);
-console.log(gol.toString())
-gol.setLWSS(3, 3);
-console.log(gol.toString())
+// let gol = new GoL(20);
+// console.log(gol.toString())
+// gol.setLWSS(3, 3);
+// console.log(gol.toString())
 
-let iterations = 45;
+// let iterations = 45;
 
-for (let i = 0; i < iterations; i++) {
-    console.log(gol.toString())
+// for (let i = 0; i < iterations; i++) {
+//     console.log(gol.toString())
 
-    console.log(gol.count);
-    gol.next();
-}
+//     console.log(gol.count);
+//     gol.next();
+// }
+
 

@@ -1,29 +1,21 @@
 class Terrain {
-    constructor(gl, nRows, nColumns, size, textureID) {
+    constructor(gl, terrainMesh, textureID) {
         this.gl = gl;
-        this.nRows = nRows;
-        this.nColumns = nColumns;
-        this.size = size;
+        this.nRows = terrainMesh.length;
+        this.nColumns = terrainMesh[0].length;
         this.textureID = textureID;
 
-        this.terrainData = this.genTerrainData(this.nRows, this.nColumns);
         this.pointsArray = [];
         this.texCoords = [];
         this.normalsArray = [];
 
-        let gridValues = this.prepMesh(this.nRows, this.nColumns);
 
 
 
-        this.terrainArray = gridValues.gridPoints;
+        this.terrainArray = terrainMesh;
         console.log("Terrain Array: " + this.terrainArray.length);
 
-        printarr(this.terrainArray);
-
-
-
-        let gridColors = gridValues.gridColors;
-        let gridPoints = gridValues.gridPoints;
+        let gridPoints = terrainMesh;
 
         let rowScale = gridPoints.length - 1;
         let colScale = gridPoints[0].length - 1;
@@ -83,65 +75,7 @@ class Terrain {
         return this.textureID;
     }
 
-    prepMesh(nRows, nColumns) {
-        let gridPoints = [];
-        let gridColors = [];
 
-        for (var i = 0; i < nRows; ++i) {
-            let rowP = [];
-            let rowC = [];
-            for (var j = 0; j < nColumns; ++j) {
-                rowP.push([
-                    this.scalingFactor * this.terrainData[i][j][0],
-                    this.scaleY(this.terrainData[i][j][1]),
-                    this.scalingFactor * this.terrainData[i][j][2]
-                ]);
-                rowC.push([i / nRows, j / nColumns, 0.0, 1.0]);
-            }
-            gridPoints.push(rowP);
-            gridColors.push(rowC);
-        }
-
-
-
-        return {
-            gridPoints: gridPoints,
-            gridColors: gridColors,
-        }
-    }
-
-    genTerrainData(rows, cols) {
-        let data = [];
-        let desiredHeight = 3;
-
-        let terrainDataWidth = terrainDataRaw.length;
-        let terrainDataHeight = terrainDataRaw[0].length;
-        let min = Number.MAX_VALUE;
-        let max = Number.MIN_VALUE;
-        let minY = Number.MAX_VALUE;
-        let maxY = Number.MIN_VALUE;
-
-        for (let i = 0; i < rows; i++) {
-            let r = [];
-            for (let j = 0; j < cols; j++) {
-                let actual = terrainDataRaw[Math.floor(i * terrainDataWidth / cols)][Math.floor(j * terrainDataHeight / rows)];
-                min = Math.min(min, Math.min(actual[0], actual[2]));
-                max = Math.max(max, Math.max(actual[0], actual[2]));
-                minY = Math.min(minY, actual[1]);
-                maxY = Math.max(maxY, actual[1]);
-                r.push(actual);
-            }
-            data.push(r);
-        }
-        this.scaleY = (v) => {
-            let range = maxY - minY;
-            let scalingFactor = desiredHeight / range;
-            return (v - minY) * scalingFactor;
-        }
-        this.scalingFactor = 1 * this.size / (max - min);
-        console.log("Scaling factor: " + this.scalingFactor);
-        return data;
-    }
 
     getTerrainData() {
         return this.terrainData;

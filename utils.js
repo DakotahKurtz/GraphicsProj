@@ -14,6 +14,18 @@ function DrawableObject(shape, programInfo, bufferAttributes, materials) {
     }
 }
 
+const printArr = function (arr) {
+    let s = "";
+    for (let i = 0; i < arr.length; i++) {
+
+        for (let j = 0; j < arr[0].length; j++) {
+            s += arr[i][j];
+        }
+        s += "\n";
+    }
+    console.log(s);
+}
+
 function calculateNormals(p1, p2, p3) {
     return [calculateNormal(p1, p2, p3), calculateNormal(p2, p3, p1), calculateNormal(p3, p1, p2)]
 }
@@ -125,19 +137,9 @@ function getAutomataArray(startArray, numIterations, applyRules) {
         }
     }
 
+    console.log("Added random values")
+    //printArr(currentState);
 
-
-    const printArr = function (arr) {
-        let s = "";
-        for (let i = 0; i < arr.length; i++) {
-
-            for (let j = 0; j < arr[0].length; j++) {
-                s += arr[i][j];
-            }
-            s += "\n";
-        }
-        console.log(s);
-    }
 
 
 
@@ -179,12 +181,7 @@ function getAutomataArray(startArray, numIterations, applyRules) {
     }
 
 
-    return {
-        state: currentState,
-        print: function () {
-            printArr(currentState);
-        },
-    }
+    return currentState;
 }
 
 var caveGenRule = (array, i, j) => {
@@ -250,7 +247,10 @@ function getRandomInt(min, max) {
 
 
 function terrainNoiseAlgorithm(wArray, iterations) {
-    console.log("Generating terrain noise");
+
+    console.log("TerrainNoise: start: ")
+    // printArr(wArray)
+
     var inBounds = (i, j) => {
         return i >= 0 && i < wArray.length && j >= 0 && j < wArray[0].length;
     }
@@ -258,56 +258,122 @@ function terrainNoiseAlgorithm(wArray, iterations) {
     let r = getAutomataArray(wArray, iterations, caveGenRule);
     let treeOdds = .01;
 
-    for (let i = 0; i < r.state.length; i++) {
-        for (let j = 0; j < r.state[0].length; j++) {
-            if (r.state[i][j] == 3) {
+    for (let i = 0; i < r.length; i++) {
+        for (let j = 0; j < r[0].length; j++) {
+            if (r[i][j] == 3) {
                 if (Math.random() <= treeOdds) {
-                    r.state[i][j] = 4;
+                    r[i][j] = 4;
                 }
             }
         }
     }
-    // r.print();
-    // console.log("-----------------------------------");
-    // console.log("r.stateL: " + r.state.length);
-    // console.log("r.state[0].length: " + r.state[0].length);
-    // let treeSpacing = 10;
 
-    // let checked = [];
-    // for (let i = 0; i < r.state.length; i++) {
-    //     let row = [];
-    //     for (let j = 0; j < r.state[i].length; j++) {
-    //         row.push(0);
-    //     }
-    //     checked.push(row);
-    // }
+    // printArr(r);
 
-    // // console.log("Checked: " + checked.length);
-    // // console.log("Checked[0]: " + checked[0].length);
-
-    // for (let i = 0; i < r.state.length; i++) {
-    //     for (let j = 0; j < r.state[0].length; j++) {
-    //         // console.log("checked: " + checked[i][j]);
-    //         if (checked[i][j] == 1) {
-    //             // console.log("Already checked: " + i + ", " + j);
-    //             continue;
-    //         }
-    //         checked[i][j] = 1;
-    //         if (r.state[i][j] == 3) {
-    //             // console.log("Found a tree at: " + i + ", " + j);
-    //             for (let k = i - treeSpacing; k <= i + treeSpacing; k++) {
-    //                 for (let l = j - treeSpacing; l <= j + treeSpacing; l++) {
-    //                     if (inBounds(k, l)) {
-    //                         r.state[k][l] = 2;
-    //                         // console.log("Replacing tree at: " + k + ", " + l);
-    //                         checked[k][l] = 1;
-    //                     }
-    //                 }
-    //             }
-    //             r.state[i][j] = 3;
-
-    //         }
-    //     }
-    // }
     return r;
 }
+
+function generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, noiseIterations) {
+
+    var genTerrainData = (rows, cols) => {
+        let data = [];
+        let desiredHeight = 3;
+
+        let terrainDataWidth = terrainDataRaw.length;
+        let terrainDataHeight = terrainDataRaw[0].length;
+        let min = Number.MAX_VALUE;
+        let max = Number.MIN_VALUE;
+        let minY = Number.MAX_VALUE;
+        let maxY = Number.MIN_VALUE;
+
+        for (let i = 0; i < rows; i++) {
+            let r = [];
+            for (let j = 0; j < cols; j++) {
+                let actual = terrainDataRaw[Math.floor(i * terrainDataWidth / cols)][Math.floor(j * terrainDataHeight / rows)];
+                min = Math.min(min, Math.min(actual[0], actual[2]));
+                max = Math.max(max, Math.max(actual[0], actual[2]));
+                minY = Math.min(minY, actual[1]);
+                maxY = Math.max(maxY, actual[1]);
+                r.push(actual);
+            }
+            data.push(r);
+        }
+
+        var scaleY = (v) => {
+            let range = maxY - minY;
+            let scalingFactor = desiredHeight / range;
+            return (v - minY) * scalingFactor;
+        }
+
+        let scalingFactor = 1 * MAP_SIZE / (max - min);
+
+        return {
+            data: data,
+            scalingFactor: scalingFactor,
+            scaleY: scaleY,
+        }
+    }
+
+    var terrainData = genTerrainData(terrainGridDim, terrainGridDim);
+
+    var prepTerrainMesh = (nRows, nColumns) => {
+        let gridPoints = [];
+        let gridColors = [];
+
+        for (var i = 0; i < nRows; ++i) {
+            let rowP = [];
+            let rowC = [];
+            for (var j = 0; j < nColumns; ++j) {
+                rowP.push([
+                    terrainData.scalingFactor * terrainData.data[i][j][0],
+                    terrainData.scaleY(terrainData.data[i][j][1]),
+                    terrainData.scalingFactor * terrainData.data[i][j][2]
+                ]);
+                rowC.push([i / nRows, j / nColumns, 0.0, 1.0]);
+            }
+            gridPoints.push(rowP);
+        }
+
+
+
+        return gridPoints;
+    }
+
+    var terrainMesh = prepTerrainMesh(terrainGridDim, terrainGridDim);
+
+    var fillBelow = (rows, cols, ceilingY) => {
+        let wArray = [];
+        for (let i = 0; i < rows; i++) {
+            let r = [];
+            for (let j = 0; j < cols; j++) {
+                r.push(0);
+            }
+            wArray.push(r);
+        }
+
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if (terrainMesh[i][j][1] <= ceilingY) {
+                    wArray[i][j] = 1;
+                }
+            }
+
+        }
+        return wArray;
+
+    }
+
+    var waterArray = fillBelow(terrainMesh.length, terrainMesh[0].length, waterLevel);
+
+    var terrainNoise = terrainNoiseAlgorithm(waterArray, noiseIterations);
+
+    return {
+        terrainMesh: terrainMesh,
+        waterArray: waterArray,
+        worldNoise: terrainNoise,
+    }
+}
+
+
+
+

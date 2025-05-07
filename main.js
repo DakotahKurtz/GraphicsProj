@@ -153,7 +153,7 @@ function init(images) {
     var waterInc = .1;
 
     var cameraLocation = [11, 6, 0];
-    var lookingAt = [0, 6, 0];
+    var lookingAt = [-6.156638770579235, 7.098167583115111, 11.970355998951227];
 
     var camera = new Camera(cameraLocation, lookingAt, [0, 1, 0]);
 
@@ -168,40 +168,36 @@ function init(images) {
 
     var worldLight = lighting(lightAmbient, lightDiffuse, lightSpecular);
 
-
     // initialize objects to draw
     const MAP_SIZE = 20;
 
-    var terrainObject = DrawableObject(new Terrain(gl, terrainGridDim, terrainGridDim, MAP_SIZE, 1), programDataPhongTexture,
+    var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 4);
+
+
+    var terrainObject = DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
         , terrainMaterials);
 
-    let terrainArray = terrainObject.drawable.getTerrainArray();
 
 
-    var riverObject = DrawableObject(new River(gl, terrainArray, waterLevel, 0), programDataPhong,
+    var riverObject = DrawableObject(new River(gl, worldArray.terrainMesh, worldArray.waterArray, waterLevel, 0), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
         waterMaterials);
 
     var trees = [];
-    let objectPlacementAlgorithm = terrainNoiseAlgorithm(riverObject.drawable.getWaterArray(), 4);
-    let objectPlacement = objectPlacementAlgorithm.state;
-
-
+    let objectPlacement = worldArray.worldNoise;
     let randomIncPOS = 0;
     let randomIncHeight = .5;
     let randomIncBase = .1;
     let randomIncDecrement = .1;
     let randomIncSteps = 5;
 
-    let treePos = [[1, 1]];
-
     for (let i = 0; i < objectPlacement.length; i++) {
         for (let j = 0; j < objectPlacement[i].length; j++) {
             if (objectPlacement[i][j] == 4) {
-                let x = terrainArray[i][j][0];
-                let z = terrainArray[i][j][2]
-                let y = terrainArray[i][j][1];
+                let x = worldArray.terrainMesh[i][j][0];
+                let z = worldArray.terrainMesh[i][j][2]
+                let y = worldArray.terrainMesh[i][j][1];
                 let rand = getRandomInt(0, 1) == 0 ? -1 : 1;
                 rand = 1;
 
@@ -269,7 +265,7 @@ function init(images) {
         then = now;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        cameraPath.update(deltaTime, camera);
+        // cameraPath.update(deltaTime, camera);
 
         let mvMatrix = camera.getViewMatrix();
         let eye = camera.getPosition();

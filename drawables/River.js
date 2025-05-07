@@ -1,8 +1,8 @@
 class River {
-    constructor(gl, terrain, waterLevel, time) {
+    constructor(gl, terrainMesh, waterArray, waterLevel, time) {
         this.gl = gl;
-        this.terrainArray = terrain;
-        this.waterArray = this._fillBelow(this.terrainArray.length, this.terrainArray[0].length, waterLevel);
+        this.terrainArray = terrainMesh;
+        this.waterArray = waterArray;
         this.waterLevel = waterLevel;
         this.updateFrequency = .1;
         this.points = this._initRiver();
