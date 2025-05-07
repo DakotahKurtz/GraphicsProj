@@ -47,9 +47,11 @@ rock texture: Amal Kumar Polyhaven
    attribute vec2 a_texcoord;
 
     attribute vec3 a_normal;
+    attribute vec4 a_color;
     
    varying vec2 v_texcoord;
     varying vec3 v_light;
+    varying vec4 v_color;
     
     uniform mat4 modelView;
     uniform mat4 projection;
@@ -89,6 +91,7 @@ rock texture: Amal Kumar Polyhaven
         v_light = (ambient + diffuse + specular).xyz;
 
         v_texcoord = a_texcoord;
+        v_color = a_color;
     } 
     </script>
 
@@ -99,14 +102,16 @@ rock texture: Amal Kumar Polyhaven
     varying vec2 v_texcoord;
 
     varying vec3 v_light;
+    varying vec4 v_color;
     
     uniform sampler2D u_texture;
 
     void
     main()
     {
-    
-        gl_FragColor = texture2D(u_texture, v_texcoord);
+        vec4 t = texture2D(u_texture, v_texcoord);
+
+        gl_FragColor = mix(t, v_color, .3);
        gl_FragColor.rgb *= v_light;
     }
     </script>

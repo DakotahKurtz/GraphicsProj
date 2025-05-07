@@ -208,4 +208,113 @@ class GoL {
 //     gol.next();
 // }
 
+function getAutomataArray(size, numIterations, applyRules) {
+    let currentState = [];
+
+    for (let i = 0; i < size; i++) {
+        let r = [];
+        for (let j = 0; j < size; j++) {
+            r.push(getRandomInt(0, 1));
+        }
+        currentState.push(r);
+    }
+
+    var iteration = function (previousState) {
+        let next = [];
+        for (let i = 0; i < previousState.length; i++) {
+            let r = [];
+            for (let j = 0; j < previousState[0].length; j++) {
+
+                r.push(applyRules(previousState, i, j));
+            }
+            next.push(r);
+        }
+        return next;
+    }
+
+    for (let i = 0; i < numIterations; i++) {
+        currentState = iteration(currentState);
+    }
+
+    return currentState;
+}
+
+var caveGenRule = (array, i, j) => {
+
+
+
+    let previousState = array;
+
+    var inBounds = (i, j) => {
+        return i >= 0 && i < previousState.length && j >= 0 && j < previousState[0].length;
+    }
+
+    var isNeighborWall = (i, j) => {
+        if (inBounds(i, j)) {
+            if (previousState[i][j] == 0) {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+        // return inBounds(i, j) && previousState[i][j] == 1;
+    }
+
+    var count = (i, j) => {
+        let c = 0;
+        c += isNeighborWall(i + 1, j);
+        c += isNeighborWall(i - 1, j);
+        c += isNeighborWall(i, j + 1);
+        c += isNeighborWall(i, j - 1);
+        c += isNeighborWall(i + 1, j + 1);
+        c += isNeighborWall(i - 1, j - 1);
+        c += isNeighborWall(i + 1, j - 1);
+        c += isNeighborWall(i - 1, j + 1);
+        return c;
+    }
+
+
+
+
+    let c = count(i, j);
+
+    if (c >= 5 || (c >= 4 && previousState[i][j] >= 1)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+function addArr(a, b) {
+    let o = [];
+
+    for (let i = 0; i < a.length; i++) {
+        let r = [];
+        for (let j = 0; j < a[0].length; j++) {
+
+            let v = Math.floor(a[i][j] + b[i][j]) % 4;
+            r.push(v)
+        }
+        o.push(r);
+    }
+    return o
+}
+
+let size = 100;
+let o = [];
+for (let i = 0; i < size; i++) {
+    let r = [];
+    for (let j = 0; j < size; j++) {
+        r.push()
+    }
+}
+
+let f = getAutomataArray(size, 5, caveGenRule);
+printArr(f);
+
+for (let i = 6; i < 9; i++) {
+    let r = getAutomataArray(size, i, caveGenRule);
+    f = addArr(f, r);
+    printArr(f);
+}
 

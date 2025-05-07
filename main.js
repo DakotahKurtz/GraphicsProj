@@ -69,7 +69,7 @@ function init(images) {
 
 
     var programDataPhongTexture = new ProgramData(gl, "vertex-shader-phong-texture", "fragment-shader-phong-texture",
-        ["a_position", "a_texcoord", "a_normal"],);
+        ["a_position", "a_texcoord", "a_normal", "a_color"],);
     var programDataTexture = new ProgramData(gl, "vertex-shader-texture", "fragment-shader-texture",
         ["a_position", "a_texcoord"],);
     var programDataPhong = new ProgramData(gl, "vertex-shader-phong", "fragment-shader-phong",
@@ -171,14 +171,13 @@ function init(images) {
     // initialize objects to draw
     const MAP_SIZE = 20;
 
-    var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 4);
-
+    var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 8);
+    console.log("In main")
+    printArr(worldArray.worldNoise);
 
     var terrainObject = DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT),]
+        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)]
         , terrainMaterials);
-
-
 
     var riverObject = DrawableObject(new River(gl, worldArray.terrainMesh, worldArray.waterArray, waterLevel, 0), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],

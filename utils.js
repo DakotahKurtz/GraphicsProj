@@ -45,6 +45,10 @@ function subtractArr(p1, p2) {
     return point(p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]);
 }
 
+function dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
@@ -150,10 +154,7 @@ function getAutomataArray(startArray, numIterations, applyRules) {
         for (let i = 0; i < previousState.length; i++) {
             let r = [];
             for (let j = 0; j < previousState[0].length; j++) {
-                let n = applyRules(previousState, i, j);
-                if (n == 3) {
 
-                }
                 r.push(applyRules(previousState, i, j));
             }
             next.push(r);
@@ -203,7 +204,7 @@ var caveGenRule = (array, i, j) => {
             } else if (previousState[i][j] == 0 || previousState[i][j] == 3) {
                 return 0;
             } else {
-                return previousState[i][j] == 1 ? 1 : previousState[i][j] - 1;
+                return previousState[i][j] == 1// ? 1 : previousState[i][j] - 1;
             }
         }
         // return inBounds(i, j) && previousState[i][j] == 1;
@@ -226,13 +227,14 @@ var caveGenRule = (array, i, j) => {
 
 
     let c = count(i, j);
-    if (c >= 8) {
-        return 3;
-    }
-    else if (c == 7) {
-        return 2;
-    }
-    else if (c >= 5 || (c >= 4 && previousState[i][j] >= 1)) {
+    // if (c >= 8) {
+    //     return 3;
+    // }
+    // else if (c == 7) {
+    //     return 2;
+    // }
+    // else 
+    if (c >= 5 || (c >= 4 && previousState[i][j] >= 1)) {
         return 1;
     } else {
         return 0;
