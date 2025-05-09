@@ -19,6 +19,31 @@ class Spiral {
             }
         }
 
+        var colorSchemes = [
+            [
+                [0.451, 0.063, 0.114, 1],
+                [0.671, 0.231, 0.286, 1],
+                [0.922, 0.549, 0.596, 1],
+            ],
+            [
+                [.663, 0.549, 0.922, 1],
+                [0.914, 0.886, 0.98, 1],
+                [0.247, 0.251, 0.929, 1],
+            ],
+            [
+                [0.482, 0.678, 0.525, 1],
+                [0.482, 0.678, 0.525, 1],
+                [0.482, 0.678, 0.525, 1],
+            ],
+            [
+                [0.482, 0.678, 0.525, 1],
+                [0.275, 0.761, 0.376, 1],
+                [0.969, 0.804, 0.447, 1],
+            ]
+        ]
+
+        let choice = getRandomInt(0, colorSchemes.length - 1)
+        let colorChoice = colorSchemes[choice];
 
 
 
@@ -29,10 +54,10 @@ class Spiral {
         }
 
         this.numVertices = this.pointsArray.length;
-        var color = [0, 0, 1, 1];
+        // var color = [0, 0, 1, 1];
         this.colorsArray = [];
-        for (let i = 0; i < this.numVertices; i++) {
-            this.colorsArray.push(color);
+        for (let i = 0; i < this.numVertices / 3; i++) {
+            this.colorsArray.push(colorChoice[0], colorChoice[1], colorChoice[2]);
         }
 
         let adjustPoints = [];

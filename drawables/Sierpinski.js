@@ -57,19 +57,19 @@ class Sierpinski {
     }
 
     _divide_tetra(p1, p2, p3, p4, c1, c2, c3, c4, count) {
-        var p1_p2 = this._midpoint(p1, p2);
-        var p1_p3 = this._midpoint(p1, p3);
-        var p1_p4 = this._midpoint(p1, p4);
-        var p2_p3 = this._midpoint(p2, p3);
-        var p2_p4 = this._midpoint(p2, p4);
-        var p3_p4 = this._midpoint(p3, p4);
+        var p1_p2 = midpoint(p1, p2);
+        var p1_p3 = midpoint(p1, p3);
+        var p1_p4 = midpoint(p1, p4);
+        var p2_p3 = midpoint(p2, p3);
+        var p2_p4 = midpoint(p2, p4);
+        var p3_p4 = midpoint(p3, p4);
 
-        let c1_c2 = this._midpoint(c1, c2);
-        let c1_c3 = this._midpoint(c1, c3);
-        let c1_c4 = this._midpoint(c1, c4);
-        let c2_c3 = this._midpoint(c2, c3);
-        let c2_c4 = this._midpoint(c2, c4);
-        let c3_c4 = this._midpoint(c3, c4);
+        let c1_c2 = midpoint(c1, c2);
+        let c1_c3 = midpoint(c1, c3);
+        let c1_c4 = midpoint(c1, c4);
+        let c2_c3 = midpoint(c2, c3);
+        let c2_c4 = midpoint(c2, c4);
+        let c3_c4 = midpoint(c3, c4);
 
         if (count > 0) {
             this._divide_tetra(p1, p1_p2, p1_p3, p1_p4, c1, c1_c2, c1_c3, c1_c4, count - 1)
@@ -127,14 +127,7 @@ class Sierpinski {
 
 
 
-    _midpoint(a, b) {
-        let n = [];
-        for (let i = 0; i < a.length; i++) {
-            n.push((a[i] + b[i]) / 2);
-        }
-        return n;
-        // return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]
-    }
+
 
 
 }

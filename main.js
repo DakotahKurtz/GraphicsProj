@@ -1,9 +1,9 @@
 "use strict";
 
-var DrawableObjectArray = [];
 const imageURLS = [
     "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
     "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
+    "https://i.ibb.co/6M9cBc6/rock-Reduced.png",
 ]
 
 
@@ -172,12 +172,11 @@ function init(images) {
     const MAP_SIZE = 20;
 
     var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 8);
-    console.log("In main")
-    printArr(worldArray.worldNoise);
 
     var terrainObject = DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)]
         , terrainMaterials);
+
 
     var riverObject = DrawableObject(new River(gl, worldArray.terrainMesh, worldArray.waterArray, waterLevel, 0), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
@@ -185,28 +184,26 @@ function init(images) {
 
     var trees = [];
     let objectPlacement = worldArray.worldNoise;
-    let randomIncPOS = 0;
-    let randomIncHeight = .5;
-    let randomIncBase = .1;
-    let randomIncDecrement = .1;
+    let randomIncHeight = .3;
+    let randomIncBase = .05;
     let randomIncSteps = 5;
+    var thresh = .006;
 
     for (let i = 0; i < objectPlacement.length; i++) {
         for (let j = 0; j < objectPlacement[i].length; j++) {
-            if (objectPlacement[i][j] == 4) {
+            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < thresh) {
                 let x = worldArray.terrainMesh[i][j][0];
                 let z = worldArray.terrainMesh[i][j][2]
                 let y = worldArray.terrainMesh[i][j][1];
-                let rand = getRandomInt(0, 1) == 0 ? -1 : 1;
-                rand = 1;
-
+                objectPlacement[i][j] = "t";
+                let rand = getRandomInt(0, 1) == 1 ? 1 : -1;
                 trees.push(
                     DrawableObject(
                         new Spiral(
                             gl,
                             [x, y, z],
-                            1.5 + getRandomFloat(-randomIncHeight, randomIncHeight),
-                            .15 + getRandomFloat(-randomIncBase, randomIncBase),
+                            1 + getRandomFloat(-randomIncHeight, randomIncHeight),
+                            .1 + getRandomFloat(-randomIncBase, randomIncBase),
                             .8,
                             toRadians(rand * getRandomFloat(30, 40)),
                             15 + getRandomInt(0, randomIncSteps)
@@ -218,7 +215,34 @@ function init(images) {
         }
     }
 
-    var GoLObject = DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 10, -5], 1), programDataPhong,
+    var rocks = [];
+    for (let i = 0; i < objectPlacement.length; i++) {
+        for (let j = 0; j < objectPlacement[i].length; j++) {
+            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < .01) {
+                let x = worldArray.terrainMesh[i][j][0];
+                let z = worldArray.terrainMesh[i][j][2]
+                let y = worldArray.terrainMesh[i][j][1] - .02;
+                objectPlacement[i][j] = "r";
+
+                rocks.push(
+                    DrawableObject(
+                        new Rock(
+                            gl,
+                            getRandomFloat(.05, .15),
+                            [x, y, z],
+                            2,
+                        ), programDataPhong,
+                        [bufferAttributes(4, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+                        terrainMaterials,
+                    )
+                )
+            }
+        }
+    }
+
+
+
+    var GoLObject = DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 17, -5], 1), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
         waterMaterials,);
 
@@ -233,6 +257,8 @@ function init(images) {
     var spiralObject = DrawableObject(new Spiral(gl, [0, 6, 0], 5, .1, .8, toRadians(40), 20), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
         waterMaterials,);
+
+
 
     var sierpinskiObject = DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
@@ -312,8 +338,15 @@ function init(images) {
         riverObject.drawable.update(now);
         lightFrameObject.draw();
         riverObject.draw();
+        setMaterials(phongUniforms, terrainMaterials, worldLight);
+        setUniforms(phongUniforms, programDataPhong);
+
+        for (let i = 0; i < rocks.length; i++) {
+            rocks[i].draw();
+        }
 
         setMaterials(phongUniforms, spiralMaterials, worldLight);
+        setUniforms(phongUniforms, programDataPhong);
         spiralObject.draw();
         for (let i = 0; i < trees.length; i++) {
             trees[i].draw();

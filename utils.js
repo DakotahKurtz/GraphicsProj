@@ -1,3 +1,7 @@
+var seed = Math.floor(Math.random() * (50000 - 1 + 1)) + 1;
+console.log("Seed: " + seed);
+const SeededRandom = mulberry32(seed);
+
 function DrawableObject(shape, programInfo, bufferAttributes, materials) {
 
     const drawHelper = function () {
@@ -12,6 +16,24 @@ function DrawableObject(shape, programInfo, bufferAttributes, materials) {
         hasMaterials: materials != null,
         materials: materials,
     }
+}
+
+function mulberry32(seed) {
+    return function () {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+
+function midpoint(a, b) {
+    let n = [];
+    for (let i = 0; i < a.length; i++) {
+        n.push((a[i] + b[i]) / 2);
+    }
+    return n;
+    // return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]
 }
 
 const printArr = function (arr) {
@@ -80,7 +102,7 @@ function toDegrees(radians) {
     return radians * 180 / Math.PI;
 }
 function getRandomFloat(min, max) {
-    return Math.random() * (max - min) + min;
+    return SeededRandom() * (max - min) + min;
 }
 
 function getAutomataArray(startArray, numIterations, applyRules) {
@@ -88,8 +110,13 @@ function getAutomataArray(startArray, numIterations, applyRules) {
 
     for (let i = 0; i < startArray.length; i++) {
         let r = [];
-        for (let j = 0; j < startArray[0].length; j++) {
-            r.push(-2);
+        for (let j = 0; j < startArray[i].length; j++) {
+            if (startArray[i][j] == -1) {
+                r.push(-1);
+            } else {
+                r.push(startArray[i][j])
+
+            }
         }
         currentState.push(r);
     }
@@ -104,7 +131,7 @@ function getAutomataArray(startArray, numIterations, applyRules) {
             var inBounds = (i, j) => {
                 return i >= 0 && i < startArray.length && j >= 0 && j < startArray[0].length;
             }
-            if (startArray[i][j] == 1) {
+            if (startArray[i][j] == -2) {
                 currentState[i][j] = -1;
                 if (inBounds(i + 1, j)) {
                     currentState[i + 1][j] = -1;
@@ -142,7 +169,7 @@ function getAutomataArray(startArray, numIterations, applyRules) {
     }
 
     console.log("Added random values")
-    //printArr(currentState);
+    // printArr(currentState);
 
 
 
@@ -184,6 +211,8 @@ function getAutomataArray(startArray, numIterations, applyRules) {
 
     return currentState;
 }
+
+
 
 var caveGenRule = (array, i, j) => {
 
@@ -243,34 +272,14 @@ var caveGenRule = (array, i, j) => {
 
 
 function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(SeededRandom() * (max - min + 1)) + min;
 }
 
 
 
 function terrainNoiseAlgorithm(wArray, iterations) {
 
-    console.log("TerrainNoise: start: ")
-    // printArr(wArray)
-
-    var inBounds = (i, j) => {
-        return i >= 0 && i < wArray.length && j >= 0 && j < wArray[0].length;
-    }
-
     let r = getAutomataArray(wArray, iterations, caveGenRule);
-    let treeOdds = .01;
-
-    for (let i = 0; i < r.length; i++) {
-        for (let j = 0; j < r[0].length; j++) {
-            if (r[i][j] == 3) {
-                if (Math.random() <= treeOdds) {
-                    r[i][j] = 4;
-                }
-            }
-        }
-    }
-
-    // printArr(r);
 
     return r;
 }
@@ -356,7 +365,7 @@ function generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, noiseIteration
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 if (terrainMesh[i][j][1] <= ceilingY) {
-                    wArray[i][j] = 1;
+                    wArray[i][j] = -1;
                 }
             }
 
@@ -366,9 +375,10 @@ function generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, noiseIteration
     }
 
     var waterArray = fillBelow(terrainMesh.length, terrainMesh[0].length, waterLevel);
+    //printArr(waterArray);
 
     var terrainNoise = terrainNoiseAlgorithm(waterArray, noiseIterations);
-
+    //printArr(terrainNoise);
     return {
         terrainMesh: terrainMesh,
         waterArray: waterArray,

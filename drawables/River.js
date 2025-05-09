@@ -206,7 +206,7 @@ class River {
     }
 
     _isWater = (i, j) => {
-        return this.waterArray[i][j] == 1;
+        return this.waterArray[i][j] == -1;
     }
 
     getNumVertices() {
