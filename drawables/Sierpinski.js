@@ -52,8 +52,13 @@ class Sierpinski {
 
     update(t) {
         let r = this.rotation(t)
+        this.objectMatrix = mult(this.m, rotateY(r));
 
-        return mult(this.m, rotateY(r));
+    }
+
+
+    getObjectMatrix() {
+        return flatten(this.objectMatrix)
     }
 
     _divide_tetra(p1, p2, p3, p4, c1, c2, c3, c4, count) {

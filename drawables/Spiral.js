@@ -72,6 +72,14 @@ class Spiral {
         this.colorBuffer = loadBuffer(this.gl, new Float32Array(flatten(this.colorsArray)), this.gl.STATIC_DRAW);
     }
 
+    update() {
+        return;
+    }
+
+    getObjectMatrix() {
+        return flatten(identity())
+    }
+
     scale(v, s) {
         return [v[0] * s, v[1] * s, v[2] * s];
     };

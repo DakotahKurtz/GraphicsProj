@@ -30,7 +30,7 @@ var lighting = (ambient, diffuse, specular) => {
     }
 }
 
-var waterMaterials = materials(
+var geometricMaterials = materials(
     lighting(
         [.1, .1, .1, 1],
         [.6, .6, .6, 1],
@@ -45,19 +45,26 @@ var spiralMaterials = materials(
     1
 );
 
+var waterMaterials = materials(
+    lighting(
+        [1.0, 1.0, 1.0, 1.0],
+        [0, 0, 0, 1],
+        [1.0, 1.0, 1.0, 1],
+    ), 20);
+
 
 var terrainMaterials = materials(
     lighting(
         [1.0, 1.0, 1.0, 1.0],
         [.6, .6, .6, 1],
-        [.4, .4, .4, 1],
+        [0.0, 0.0, 0.0, 1],
     ), 20);
 
 
 var then = 0;
 var animID;
 var isPlaying = false;
-var terrainGridDim = 256;
+var terrainGridDim = 512;
 
 main();
 
@@ -103,6 +110,20 @@ function init(images) {
         "lightPosition": 0,
         "shininess": 0,
         "eyePosition": 0,
+    }
+
+    var programUniformCorrespondence = (program, uniforms) => {
+        return {
+            program: program,
+            uniforms: uniforms,
+            drawableObjects: []
+        }
+    }
+
+    var DrawableTypes = {
+        "PhongTexture": programUniformCorrespondence(programDataPhongTexture, phongTextureUniforms),
+        "Phong": programUniformCorrespondence(programDataPhong, phongUniforms),
+        "Texture": programUniformCorrespondence(programDataTexture, textureUniforms),
     }
 
     for (const [name] of Object.entries(phongTextureUniforms)) {
@@ -173,21 +194,39 @@ function init(images) {
 
     var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 8);
 
-    var terrainObject = DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)]
-        , terrainMaterials);
+    DrawableTypes["PhongTexture"].drawableObjects.push(
+        DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)]
+            , terrainMaterials),
 
+        DrawableObject(new River(gl, worldArray.terrainMesh, worldArray.waterArray, waterLevel, 0), programDataPhongTexture,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            waterMaterials),
+    )
 
-    var riverObject = DrawableObject(new River(gl, worldArray.terrainMesh, worldArray.waterArray, waterLevel, 0), programDataPhong,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        waterMaterials);
+    DrawableTypes["Phong"].drawableObjects.push(
+
+        DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            geometricMaterials,),
+
+        DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            geometricMaterials),
+        DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 17, -5], 1), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            geometricMaterials,),
+        DrawableObject(new Grass(gl, terrainGridDim, MAP_SIZE * 2, 5, worldArray), programDataPhong,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+            geometricMaterials,),
+    );
 
     var trees = [];
     let objectPlacement = worldArray.worldNoise;
     let randomIncHeight = .3;
     let randomIncBase = .05;
     let randomIncSteps = 5;
-    var thresh = .006;
+    var thresh = .002;
 
     for (let i = 0; i < objectPlacement.length; i++) {
         for (let j = 0; j < objectPlacement[i].length; j++) {
@@ -197,7 +236,7 @@ function init(images) {
                 let y = worldArray.terrainMesh[i][j][1];
                 objectPlacement[i][j] = "t";
                 let rand = getRandomInt(0, 1) == 1 ? 1 : -1;
-                trees.push(
+                DrawableTypes["Phong"].drawableObjects.push(
                     DrawableObject(
                         new Spiral(
                             gl,
@@ -210,7 +249,9 @@ function init(images) {
                         ),
                         programDataPhong,
                         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-                        spiralMaterials,));
+                        spiralMaterials,)
+                )
+
             }
         }
     }
@@ -224,7 +265,7 @@ function init(images) {
                 let y = worldArray.terrainMesh[i][j][1] - .02;
                 objectPlacement[i][j] = "r";
 
-                rocks.push(
+                DrawableTypes["Phong"].drawableObjects.push(
                     DrawableObject(
                         new Rock(
                             gl,
@@ -236,33 +277,17 @@ function init(images) {
                         terrainMaterials,
                     )
                 )
+
             }
         }
     }
 
+    DrawableTypes["Texture"].drawableObjects.push(
+        DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
+        )
+    )
 
-
-    var GoLObject = DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 17, -5], 1), programDataPhong,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        waterMaterials,);
-
-    var skyBoxObject = DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
-    );
-
-    var lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        waterMaterials,);
-
-    var spiralObject = DrawableObject(new Spiral(gl, [0, 6, 0], 5, .1, .8, toRadians(40), 20), programDataPhong,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        waterMaterials,);
-
-
-
-    var sierpinskiObject = DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
-        [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        waterMaterials);
 
     const keyframes = [
         { position: [0, 6, 5], lookAt: [0, 0, 0], duration: 6 },
@@ -304,61 +329,92 @@ function init(images) {
         phongTextureUniforms["lightPosition"] = flatten(lightPosition);
         phongTextureUniforms["modelView"] = flatten(mvMatrix);
         phongTextureUniforms["projection"] = flatten(pMatrix);
-        phongTextureUniforms["u_texture"] = terrainObject.drawable.getTextureID();
-        setMaterials(phongTextureUniforms, terrainObject.materials, worldLight);
 
-        setUniforms(phongTextureUniforms, programDataPhongTexture);
+        DrawableTypes["PhongTexture"].drawableObjects.forEach((drawableObject) => {
+            phongTextureUniforms["u_texture"] = drawableObject.drawable.getTextureID();
+            setMaterials(phongTextureUniforms, drawableObject.materials, worldLight);
+            drawableObject.drawable.update(now);
 
-        terrainObject.draw();
+            setUniforms(phongTextureUniforms, programDataPhongTexture);
+
+            drawableObject.draw();
+        })
+
+
 
         programDataTexture.use();
         textureUniforms["modelView"] = flatten(mvMatrix);
         textureUniforms["projection"] = flatten(pMatrix);
-        textureUniforms["u_texture"] = skyBoxObject.drawable.getTextureID();
-        setUniforms(textureUniforms, programDataTexture);
+        DrawableTypes["Texture"].drawableObjects.forEach((drawableObject) => {
+            textureUniforms["u_texture"] = drawableObject.drawable.getTextureID();
+            setUniforms(textureUniforms, programDataTexture);
 
-        skyBoxObject.draw();
+            drawableObject.draw();
+        })
+        // textureUniforms["u_texture"] = skyBoxObject.drawable.getTextureID();
+        // setUniforms(textureUniforms, programDataTexture);
 
+        // skyBoxObject.draw();
+
+        DrawableTypes["Phong"].drawableObjects.push(
+            DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+                [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+                materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),),
+            LookAtBox(camera),
+        );
         programDataPhong.use();
         phongUniforms["eyePosition"] = flatten(eye);
         phongUniforms["lightPosition"] = flatten(lightPosition);
-        phongUniforms["objectMatrix"] = flatten(identity());
+        // phongUniforms["objectMatrix"] = flatten(identity());
         phongUniforms["modelView"] = flatten(mvMatrix);
         phongUniforms["projection"] = flatten(pMatrix);
-        setMaterials(phongUniforms, waterMaterials, worldLight);
-        setUniforms(phongUniforms, programDataPhong);
 
-        lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-            materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),); lightFrameObject.draw();
+        DrawableTypes["Phong"].drawableObjects.forEach((drawableObject) => {
+            drawableObject.drawable.update(now);
 
-        let box = LookAtBox(camera);
-        box.draw();
+            setMaterials(phongUniforms, drawableObject.materials, worldLight);
+            phongUniforms["objectMatrix"] = drawableObject.drawable.getObjectMatrix();
+            setUniforms(phongUniforms, programDataPhong);
+            drawableObject.draw();
 
-        riverObject.drawable.update(now);
-        lightFrameObject.draw();
-        riverObject.draw();
-        setMaterials(phongUniforms, terrainMaterials, worldLight);
-        setUniforms(phongUniforms, programDataPhong);
+        })
+        DrawableTypes["Phong"].drawableObjects.pop();
+        DrawableTypes["Phong"].drawableObjects.pop();
 
-        for (let i = 0; i < rocks.length; i++) {
-            rocks[i].draw();
-        }
+        // setMaterials(phongUniforms, waterMaterials, worldLight);
+        // setUniforms(phongUniforms, programDataPhong);
 
-        setMaterials(phongUniforms, spiralMaterials, worldLight);
-        setUniforms(phongUniforms, programDataPhong);
-        spiralObject.draw();
-        for (let i = 0; i < trees.length; i++) {
-            trees[i].draw();
-        }
+        // lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+        //     [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        //     materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),); lightFrameObject.draw();
 
-        GoLObject.drawable.update(now);
-        GoLObject.draw();
+        // let box = LookAtBox(camera);
+        // box.draw();
 
-        let sierpinskiMatrix = sierpinskiObject.drawable.update(now);
-        phongUniforms["objectMatrix"] = flatten(sierpinskiMatrix);
-        setUniforms(phongUniforms, programDataPhong);
-        sierpinskiObject.draw();
+        // riverObject.drawable.update(now);
+        // lightFrameObject.draw();
+        // riverObject.draw();
+        // setMaterials(phongUniforms, terrainMaterials, worldLight);
+        // setUniforms(phongUniforms, programDataPhong);
+
+        // for (let i = 0; i < rocks.length; i++) {
+        //     rocks[i].draw();
+        // }
+
+        // setMaterials(phongUniforms, spiralMaterials, worldLight);
+        // setUniforms(phongUniforms, programDataPhong);
+        // spiralObject.draw();
+        // for (let i = 0; i < trees.length; i++) {
+        //     trees[i].draw();
+        // }
+
+        // GoLObject.drawable.update(now);
+        // GoLObject.draw();
+
+        // let sierpinskiMatrix = sierpinskiObject.drawable.update(now);
+        // phongUniforms["objectMatrix"] = flatten(sierpinskiMatrix);
+        // setUniforms(phongUniforms, programDataPhong);
+        // sierpinskiObject.draw();
 
 
         animID = requestAnimationFrame(render);
@@ -405,33 +461,33 @@ function init(images) {
                 // console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
                 switch (event.key) {
                     case ("1"):
-                        incrementArray(waterMaterials.ambient, lightIncrement);
+                        incrementArray(geometricMaterials.ambient, lightIncrement);
                         break;
                     case ("2"):
-                        incrementArray(waterMaterials.diffuse, lightIncrement);
+                        incrementArray(geometricMaterials.diffuse, lightIncrement);
                         break;
                     case ("3"):
-                        incrementArray(waterMaterials.specular, lightIncrement);
+                        incrementArray(geometricMaterials.specular, lightIncrement);
                         break;
                     case ("4"):
-                        waterMaterials.shininess += 5;
+                        geometricMaterials.shininess += 5;
                         break;
                     case ("5"):
-                        waterMaterials.shininess -= 5;
+                        geometricMaterials.shininess -= 5;
                         break;
                     case ("6"):
-                        incrementArray(waterMaterials.ambient, -lightIncrement);
+                        incrementArray(geometricMaterials.ambient, -lightIncrement);
                         break;
                     case ("7"):
-                        incrementArray(waterMaterials.diffuse, -lightIncrement);
+                        incrementArray(geometricMaterials.diffuse, -lightIncrement);
                         break;
                     case ("8"):
-                        incrementArray(waterMaterials.specular, -lightIncrement);
+                        incrementArray(geometricMaterials.specular, -lightIncrement);
                         break;
                 }
 
-                console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
-                console.log("Water Shininess: " + waterMaterials.shininess);
+                console.log("Water Material: " + geometricMaterials.ambient + ", " + geometricMaterials.diffuse + ", " + geometricMaterials.specular);
+                console.log("Water Shininess: " + geometricMaterials.shininess);
                 return;
 
             }

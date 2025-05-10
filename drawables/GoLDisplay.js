@@ -10,10 +10,11 @@ class GoLDisplay {
         this.displayDimSize = this.displayDim / this.gridSize;
         this.sideLength = (this.displayDim - 2 * this.padding * this.gridSize) / this.gridSize;
 
-
+        this.updateCount = 0;
         this.gol = new GoL(this.gridSize);
         this.gol.setBlinkerH(4, 4);
         this.gol.setGlider(8, 8);
+        this.gol.setPulsar(12, 12);
 
         this.color = [0, 0, 1, 1];
 
@@ -58,6 +59,10 @@ class GoLDisplay {
     }
 
 
+
+    getObjectMatrix() {
+        return flatten(identity())
+    }
     updateDisplayBuffers() {
         let grid = this.gol.grid;
         let cubes = [];
@@ -73,7 +78,7 @@ class GoLDisplay {
                     ];
 
 
-                    cubes.push(this.addFaces(tl, this.sideLength));
+                    cubes.push([this.addFaces(tl, this.sideLength), i, j]);
                 }
             }
         }
@@ -82,8 +87,13 @@ class GoLDisplay {
         var points = [];
         var normals = [];
 
+        var colorG = .1;
+
         for (let i = 0; i < cubes.length; i++) {
-            let cubeFaces = cubes[i];
+            let cubeFaces = cubes[i][0];
+            let gridI = cubes[i][1];
+            let gridJ = cubes[i][2];
+
             for (let j = 0; j < cubeFaces.length; j++) {
                 let t1 = cubeFaces[j][0];
                 let t2 = cubeFaces[j][1];
@@ -93,10 +103,12 @@ class GoLDisplay {
                 let n2 = calculateNormals(t2[0], t2[1], t2[2]);
 
                 normals.push(n1[0], n1[1], n1[2], n2[0], n2[1], n2[2]);
+                let c = [1 - gridI / this.displayDim, colorG, gridJ / this.displayDim, .7]
 
-                colors.push(this.color, this.color, this.color, this.color, this.color, this.color,)
+                colors.push(c, c, c, c, c, c)
             }
         }
+        this.updateCount++;
 
         this.vertexBuffer = loadBuffer(this.gl, flatten(points), this.gl.STATIC_DRAW);
         this.normalBuffer = loadBuffer(this.gl, flatten(normals), this.gl.STATIC_DRAW);
@@ -141,7 +153,7 @@ class GoL {
     _setValues(arr) {
 
         for (let i = 0; i < arr.length; i++) {
-            this.grid[arr[i][0]][arr[i][1]] = 1;
+            this.grid[arr[i][0] % this.gridSize][arr[i][1] % this.gridSize] = 1;
         }
     }
 
@@ -205,9 +217,12 @@ class GoL {
     }
 
     setBlinkerV(i, j) {
-        this.grid[i][j] = 1;
-        this.grid[i + 1][j] = 1;
-        this.grid[i + 2][j] = 1;
+        this._setValues([
+            [i, j],
+            [i + 1, j],
+            [i + 2, j],
+        ]);
+
     }
 
     next() {

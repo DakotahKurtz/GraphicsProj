@@ -138,7 +138,9 @@ class Terrain {
         return this.colorsBuffer;
     }
 
-
+    update() {
+        return;
+    }
 
 
     getVertexBuffer() {

@@ -36,6 +36,10 @@ class Rock {
         return this.textureID;
     }
 
+    update() {
+        return;
+    }
+
     draw(programInfo, bufferAttributes) {
 
         let buffers = this.getBuffers();
@@ -47,6 +51,10 @@ class Rock {
         }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
+    }
+
+    getObjectMatrix() {
+        return flatten(identity());
     }
 
     getNumVertices() {
@@ -76,13 +84,24 @@ class Rock {
         let n = calculateNormals(a, b, c);
         this.normalsArray.push(normalize(n[0]), normalize(n[1]), normalize(n[2]))
 
+        if (Math.abs(dot(n[0], [0, 1, 0])) > .5) {
+            this.colorArray.push(
+                [0.341, 0.639, 0.302, 1,],
+
+                [0.298, 0.451, 0.275, 1,],
+                [0.361, 0.361, 0.361, 1,]
+
+            )
+        } else {
+            this.colorArray.push(this.c1, this.c2, this.c3);
+
+        }
 
 
         this.pointsArray.push(this.scaleAndShift(a));
         this.pointsArray.push(this.scaleAndShift(b));
         this.pointsArray.push(this.scaleAndShift(c));
 
-        this.colorArray.push(this.c1, this.c2, this.c3);
 
         this.numVertices += 3;
     }

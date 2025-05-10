@@ -190,4 +190,13 @@ class TransparentBox {
     getBuffers() {
         return [this.getVertexBuffer(), this.getNormalBuffer(), this.getColorBuffer()];
     }
+
+    update() {
+        return;
+    }
+
+
+    getObjectMatrix() {
+        return flatten(identity())
+    }
 }

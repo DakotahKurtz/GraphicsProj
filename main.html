@@ -23,6 +23,7 @@ rock texture: Amal Kumar Polyhaven
 <script src="CameraPath.js"></script>
 
 <script src="drawables/Rock.js"></script>
+<script src="drawables/Grass.js"></script>
 <script src="drawables/Terrain.js"></script>
 <script src="drawables/Spiral.js"></script>
 <script src="drawables/River.js"></script>
@@ -114,6 +115,7 @@ rock texture: Amal Kumar Polyhaven
 
         gl_FragColor = mix(t, v_color, .6);
         //gl_FragColor = v_color;
+       //gl_FragColor = t;
        gl_FragColor.rgb *= v_light;
     }
     </script>
