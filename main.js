@@ -162,18 +162,6 @@ function init(images) {
         "Sparse": programUniformCorrespondence(programDataSparse, sparseUniforms),
     }
 
-    // for (const [name] of Object.entries(phongTextureUniforms)) {
-    //     programDataPhongTexture.getUniformInfo(name);
-    // }
-
-    // for (const [name] of Object.entries(textureUniforms)) {
-    //     programDataTexture.getUniformInfo(name);
-    // }
-
-    // for (const [name] of Object.entries(phongUniforms)) {
-    //     programDataPhong.getUniformInfo(name);
-    // }
-
     var textures = [];
     for (var i = 0; i < images.length; ++i) {
         var texture = gl.createTexture();
@@ -243,9 +231,9 @@ function init(images) {
 
     DrawableTypes["Phong"].drawableObjects.push(
 
-        DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-            [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-            geometricMaterials,),
+        // DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+        //     [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        //     geometricMaterials,),
 
         DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
@@ -319,23 +307,41 @@ function init(images) {
         }
     }
 
+    var lookAtCheckBox = document.getElementById("lookAt");
+    lookAtCheckBox.value = false;
+
+    var startCameraPathButton = document.getElementById("animation");
+    var controlCameraManuallyButton = document.getElementById("control");
+    var isShowLookAt = false;
+    lookAtCheckBox.disabled = true;
+    var cameraPath = new CameraPath(frameIncrement, 0);
+    camera.setFixedPath(true);
+
+    startCameraPathButton.addEventListener("click", () => {
+        cameraPath = new CameraPath(frameIncrement, 0);
+        camera.setLocked(false);
+        camera.setFixedPath(true);
+        lookAtCheckBox.value = false;
+        lookAtCheckBox.disabled = true;
+    })
+
+    controlCameraManuallyButton.addEventListener("click", () => {
+        camera.setFixedPath(false);
+        lookAtCheckBox.disabled = false;
+        camera = new Camera(cameraPath.cameraPosition, cameraPath.cameraLookAt, [0, 1, 0])
+
+
+    })
+
+    lookAtCheckBox.addEventListener("click", () => {
+        isShowLookAt = lookAtCheckBox.checked;
+    })
+
     DrawableTypes["Texture"].drawableObjects.push(
         DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
         )
     )
-
-    const cameraSavedStates = [];
-
-    const cameraPath = new CameraPath(frameIncrement, 126);
-    camera.setFixedPath(true);
-
-    if (camera.isFixedPath() == false) {
-        camera.position = (frameIncrement[frameIncrement.length - 1].position);
-        camera.lookingAt = (frameIncrement[frameIncrement.length - 1].lookAt);
-
-
-    }
 
     manageControls();
 
@@ -352,6 +358,7 @@ function init(images) {
     var lastSnapshot = 0;
 
     function render(now) {
+
         now *= 0.001;
         let deltaTime = now - then;
         then = now;
@@ -359,23 +366,6 @@ function init(images) {
 
         if (camera.isFixedPath()) {
             cameraPath.update(deltaTime, camera);
-
-        } else {
-            if (now - lastSnapshot >= 1) {
-
-
-                if (!pressedKeys["m"]) {
-                    let loc = camera.getPosition();
-                    let at = camera.getLookingAt();
-                    let up = camera.getUp();
-
-                    cameraSavedStates.push([loc, at, up])
-                    console.log("state: " + cameraSavedStates.length + " | ", loc, at);
-                }
-
-                lastSnapshot = now;
-
-            }
         }
 
 
@@ -424,8 +414,14 @@ function init(images) {
             DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
                 [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
                 materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),),
-            LookAtBox(camera),
         );
+
+        if (isShowLookAt) {
+            DrawableTypes["Phong"].drawableObjects.push(
+                LookAtBox(camera),
+            );
+        }
+
         programDataPhong.use();
         phongUniforms["eyePosition"] = flatten(eye);
         phongUniforms["lightPosition"] = flatten(lightPosition);
@@ -443,7 +439,10 @@ function init(images) {
 
         })
         DrawableTypes["Phong"].drawableObjects.pop();
-        DrawableTypes["Phong"].drawableObjects.pop();
+        if (isShowLookAt) {
+            DrawableTypes["Phong"].drawableObjects.pop();
+
+        }
 
 
 
@@ -488,14 +487,6 @@ function init(images) {
         var lightIncrement = .1;
 
         document.addEventListener('keydown', function (event) {
-            // if (event.key == " ") {
-            //     let loc = camera.getPosition();
-            //     let at = camera.getLookingAt();
-            //     let up = camera.getUp();
-
-            //     cameraSavedStates.push([loc, at, up])
-            //     console.log("Camera: " + loc + " | " + at + " | " + up);
-            // }
 
             if (event.key == "^") {
                 let output = "#states: " + cameraSavedStates[0].length

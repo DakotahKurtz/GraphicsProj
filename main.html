@@ -38,6 +38,55 @@ rock texture: Amal Kumar Polyhaven
     <canvas id="gl-canvas" width="800" height="800">
         Oops ... your browser doesn't support the HTML5 canvas element
     </canvas>
+    <div style="display: inline-flex; column-gap: 10px;">
+        <div>
+            <input type="checkbox" id="lookAt" name="lookAtBox" padding-right="10px">
+            <label for="lookAtBox" padding-right="10px">Toggle Camera Focus</label>
+        </div>
+
+        <button type="button" id="animation">Camera Tour</button>
+        <button type="button" id="control">Manual Control</button>
+        <div>press 'h' for help</div>
+    </div>
+
+    <!-- Controls overlay -->
+    <div id="controlsOverlay" style="
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: sans-serif;
+  display: none;
+  z-index: 10;
+">
+        <strong>Manual controls:</strong><br>
+        <b>Move camera along axes:</b><br>
+        x, y, z ~ arrowkeys, 'f', 'b'<br>
+        <b>Move camera wrt "lookAt":</b><br>
+        (hold shift)<br>
+        forward,backward,left,right ~ 'f', 'b', 'l', 'r'<br>
+        <b>Adjust "lookAt":</b><br>
+        (hold shift)<br>
+        theta, phi, in/out ~ arrowkeys, 'i', 'o'<br>
+        <b>Lock/Unlock "lookAt":</b><br>
+        '0' (zero)<br>
+        'H' - Toggle this help<br>
+    </div>
+
+    <script>
+        const controlsOverlay = document.getElementById('controlsOverlay');
+
+        // Toggle visibility with 'H' key
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'h') {
+                controlsOverlay.style.display =
+                    controlsOverlay.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    </script>
 
 </body>
 
