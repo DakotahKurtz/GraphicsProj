@@ -12,9 +12,23 @@ class GoLDisplay {
 
         this.updateCount = 0;
         this.gol = new GoL(this.gridSize);
-        this.gol.setBlinkerH(4, 4);
-        this.gol.setGlider(8, 8);
-        this.gol.setPulsar(12, 12);
+        // this.gol.setBlinkerH(4, 4);
+        this.gol.setGlider(70, 10);
+        this.gol.setGlider(20, 20);
+        this.gol.setGlider(30, 30);
+        this.gol.setPulsar(50, 50);
+
+        this.gol.setBlinkerH(15, 40);
+        this.gol.setBlinkerH(25, 15);
+        this.gol.setBlinkerV(50, 10);
+        this.gol.setBlinkerV(60, 30);
+        this.gol.setBlinkerV(10, 80);
+
+        this.gol.setPulsar(80, 80);
+        this.gol.setPulsar(3, 3);
+
+        // this.gol.setBlinkerH(2, 2);
+        // this.gol.setBlinkerH(gridSize - 2, gridSize - 2)
 
         this.color = [0, 0, 1, 1];
 

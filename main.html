@@ -18,7 +18,7 @@ rock texture: Amal Kumar Polyhaven
 <script type="text/javascript" src="webgl-utils/ProgramData.js"></script>
 <script src="webgl-utils/webgl-help.js"></script>
 <script src="utils.js"></script>
-
+<script src="CameraFrames.js"></script>
 <script src="Camera.js"></script>
 <script src="CameraPath.js"></script>
 
@@ -107,13 +107,14 @@ rock texture: Amal Kumar Polyhaven
     varying vec4 v_color;
     
     uniform sampler2D u_texture;
+    uniform float u_mixValue;
 
     void
     main()
     {
         vec4 t = texture2D(u_texture, v_texcoord);
 
-        gl_FragColor = mix(t, v_color, .6);
+        gl_FragColor = mix(t, v_color, u_mixValue);
         //gl_FragColor = v_color;
        //gl_FragColor = t;
        gl_FragColor.rgb *= v_light;
@@ -223,4 +224,39 @@ rock texture: Amal Kumar Polyhaven
         void main() {
            gl_FragColor = texture2D(u_texture, v_texcoord);
         }
+</script>
+
+<script id="vertex-shader-sparse" type="x-shader/x-vertex">
+
+    attribute vec4 vPosition;
+    attribute vec4 a_color;
+    
+    varying vec4 fColor;
+    
+    uniform mat4 objectMatrix;
+    uniform mat4 modelView;
+    uniform mat4 projection;
+
+    void
+    main()
+    {
+    
+        gl_Position = projection * modelView * objectMatrix * vPosition;
+            
+        fColor = a_color;
+    }
+        </script>
+
+<script id="fragment-shader-sparse" type="x-shader/x-fragment">
+
+    precision mediump float;
+
+    varying vec4 fColor;
+    void
+    main()
+    {
+    
+        gl_FragColor = fColor;
+    
+    }
 </script>

@@ -12,10 +12,10 @@ class Grass {
         this.normals = [];
 
         this.color = [1, 0, 0, 1]
-        this.height = .1;
+        this.height = .13;
         this.bladeWidth = .01;
 
-        this.threshold = .03;
+        this.threshold = .1;
 
         this.filterSize = 3;
 
@@ -39,14 +39,14 @@ class Grass {
 
     plantPatch(i, j) {
         var validGrassTile = (x, y) => {
-            return x >= 0 && y >= 0 && x < this.noiseArray.length && y < this.noiseArray.length && this.noiseArray[x][y] == 1;
+            return x >= 0 && y >= 0 && x < this.noiseArray.length && y < this.noiseArray.length && this.noiseArray[x][y] == 0;
         }
 
         for (let k = Math.floor(i - this.filterSize / 2); k < Math.floor(i + this.filterSize / 2); k++) {
             for (let l = Math.floor(j - this.filterSize / 2); l < Math.floor(j + this.filterSize / 2); l++) {
                 if (validGrassTile(k, l)) {
                     for (let m = 0; m < this.density; m++) {
-                        this.plantGrass(getRandomFloat(0, this.plantingRange) + this.terrainMesh[k][l][0], this.terrainMesh[k][l][1], getRandomFloat(0, this.plantingRange) + this.terrainMesh[k][l][2]);
+                        this.plantGrass(getRandomFloat(0, this.plantingRange) + this.terrainMesh[k][l][0], this.terrainMesh[k][l][1] - .03, getRandomFloat(0, this.plantingRange) + this.terrainMesh[k][l][2]);
                     }
                 }
             }
@@ -65,9 +65,11 @@ class Grass {
         let p1 = [x, y, z];
         let p2 = [x, y, z + this.bladeWidth];
         let p3 = [x, y + this.height, z];
+        let p4 = [x + this.bladeWidth, y, z];
 
         this.points.push(
             p1, p2, p3,
+            p1, p4, p3,
         )
 
         let n = calculateNormals(p1, p2, p3);
@@ -77,10 +79,20 @@ class Grass {
             normalize(n[2])
         )
 
+        n = calculateNormals(p1, p4, p3);
+        this.normals.push(
+            normalize(n[0]),
+            normalize(n[1]),
+            normalize(n[2])
+        )
+
         this.colors.push(
             this.color,
             this.color,
-            this.color
+            this.color,
+            this.color,
+            this.color,
+            this.color,
         )
 
     }

@@ -1,8 +1,8 @@
 "use strict";
 
 const imageURLS = [
-    "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
-    "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
+    // "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
+    // "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
     "https://i.ibb.co/6M9cBc6/rock-Reduced.png",
 ]
 
@@ -29,6 +29,13 @@ var lighting = (ambient, diffuse, specular) => {
         specular: specular,
     }
 }
+//var worldLight = lighting(lightAmbient, lightDiffuse, lightSpecular);
+
+var worldLight = lighting(
+    [.25, .2, .2, 1],
+    [.9, .9, .9, 1],
+    [.9, .9, .9, 1],
+)
 
 var geometricMaterials = materials(
     lighting(
@@ -45,9 +52,16 @@ var spiralMaterials = materials(
     1
 );
 
+var rockMaterials = materials(
+    lighting(
+        [.2, .2, .2, 1],
+        [.6, .6, .6, 1],
+        [.2, .2, .2, 1],
+    ), 20);
+
 var waterMaterials = materials(
     lighting(
-        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1],
         [0, 0, 0, 1],
         [1.0, 1.0, 1.0, 1],
     ), 20);
@@ -55,16 +69,24 @@ var waterMaterials = materials(
 
 var terrainMaterials = materials(
     lighting(
-        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1],
         [.6, .6, .6, 1],
         [0.0, 0.0, 0.0, 1],
     ), 20);
+
+var grassMaterials = materials(
+    lighting(
+        [.2, .2, .2, 1],
+        [.8, .8, .8, 1],
+        [.8, .8, .8, 1],),
+    15);
 
 
 var then = 0;
 var animID;
 var isPlaying = false;
 var terrainGridDim = 512;
+const pressedKeys = {};
 
 main();
 
@@ -81,6 +103,8 @@ function init(images) {
         ["a_position", "a_texcoord"],);
     var programDataPhong = new ProgramData(gl, "vertex-shader-phong", "fragment-shader-phong",
         ["vPosition", "vNormal", "a_color"],);
+    var programDataSparse = new ProgramData(gl, "vertex-shader-sparse", "fragment-shader-sparse",
+        ["vPosition", "a_color"],);
 
     var phongTextureUniforms = {
         "modelView": 0,
@@ -92,6 +116,7 @@ function init(images) {
         "shininess": 0,
         "eyePosition": 0,
         "u_texture": 0,
+        "u_mixValue": .01,
     };
 
     var textureUniforms = {
@@ -112,7 +137,17 @@ function init(images) {
         "eyePosition": 0,
     }
 
+    var sparseUniforms = {
+        "modelView": 0,
+        "projection": 0,
+        "objectMatrix": flatten(identity()),
+    }
+
     var programUniformCorrespondence = (program, uniforms) => {
+        for (const [name] of Object.entries(uniforms)) {
+            program.getUniformInfo(name);
+        }
+
         return {
             program: program,
             uniforms: uniforms,
@@ -124,19 +159,20 @@ function init(images) {
         "PhongTexture": programUniformCorrespondence(programDataPhongTexture, phongTextureUniforms),
         "Phong": programUniformCorrespondence(programDataPhong, phongUniforms),
         "Texture": programUniformCorrespondence(programDataTexture, textureUniforms),
+        "Sparse": programUniformCorrespondence(programDataSparse, sparseUniforms),
     }
 
-    for (const [name] of Object.entries(phongTextureUniforms)) {
-        programDataPhongTexture.getUniformInfo(name);
-    }
+    // for (const [name] of Object.entries(phongTextureUniforms)) {
+    //     programDataPhongTexture.getUniformInfo(name);
+    // }
 
-    for (const [name] of Object.entries(textureUniforms)) {
-        programDataTexture.getUniformInfo(name);
-    }
+    // for (const [name] of Object.entries(textureUniforms)) {
+    //     programDataTexture.getUniformInfo(name);
+    // }
 
-    for (const [name] of Object.entries(phongUniforms)) {
-        programDataPhong.getUniformInfo(name);
-    }
+    // for (const [name] of Object.entries(phongUniforms)) {
+    //     programDataPhong.getUniformInfo(name);
+    // }
 
     var textures = [];
     for (var i = 0; i < images.length; ++i) {
@@ -164,17 +200,17 @@ function init(images) {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     var aspect = canvas.width / canvas.height;
-    var lookInc = .1;
-    var cameraAtInc = 1;
+    var lookInc = .01;
+    var cameraAtInc = .1;
     var boundingInc = 1;
-    var angleInc = .1;
+    var angleInc = .03;
     var lightInc = .1;
     var depthChangeInc = .1;
     var waterLevel = 1.19;
     var waterInc = .1;
 
-    var cameraLocation = [11, 6, 0];
-    var lookingAt = [-6.156638770579235, 7.098167583115111, 11.970355998951227];
+    var cameraLocation = [9.006, 2.989, 8.743];
+    var lookingAt = [-2.776, 17.579, 7.887];
 
     var camera = new Camera(cameraLocation, lookingAt, [0, 1, 0]);
 
@@ -183,16 +219,13 @@ function init(images) {
     var viewAngle = 30;
 
     var lightPosition = vec4(0, 9, 0, 1);
-    var lightAmbient = vec4(.3, .3, .3, 1.0);
-    var lightDiffuse = vec4(.6, .6, .6, 1.0);
-    var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
-    var worldLight = lighting(lightAmbient, lightDiffuse, lightSpecular);
+
 
     // initialize objects to draw
     const MAP_SIZE = 20;
 
-    var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 8);
+    var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 15);
 
     DrawableTypes["PhongTexture"].drawableObjects.push(
         DrawableObject(new Terrain(gl, worldArray.terrainMesh, worldArray.worldNoise, 1), programDataPhongTexture,
@@ -204,6 +237,10 @@ function init(images) {
             waterMaterials),
     )
 
+    DrawableTypes["Sparse"].drawableObjects.push(
+
+    )
+
     DrawableTypes["Phong"].drawableObjects.push(
 
         DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
@@ -213,12 +250,12 @@ function init(images) {
         DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
             geometricMaterials),
-        DrawableObject(new GoLDisplay(gl, 20, 20, [-5, 17, -5], 1), programDataPhong,
+        DrawableObject(new GoLDisplay(gl, 80, 2 * MAP_SIZE, [-MAP_SIZE, 15, -MAP_SIZE], .5), programDataPhong,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
             geometricMaterials,),
         DrawableObject(new Grass(gl, terrainGridDim, MAP_SIZE * 2, 5, worldArray), programDataPhong,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-            geometricMaterials,),
+            grassMaterials,),
     );
 
     var trees = [];
@@ -274,7 +311,7 @@ function init(images) {
                             2,
                         ), programDataPhong,
                         [bufferAttributes(4, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-                        terrainMaterials,
+                        rockMaterials,
                     )
                 )
 
@@ -288,14 +325,17 @@ function init(images) {
         )
     )
 
+    const cameraSavedStates = [];
 
-    const keyframes = [
-        { position: [0, 6, 5], lookAt: [0, 0, 0], duration: 6 },
-        { position: [5, 6, 5], lookAt: [0, 0, 0], duration: 2 },
-        // { position: [5, 6, 0], lookAt: [0, 0, 0], duration: 2 }
-    ];
+    const cameraPath = new CameraPath(frameIncrement, 126);
+    camera.setFixedPath(true);
 
-    const cameraPath = new CameraPath(keyframes);
+    if (camera.isFixedPath() == false) {
+        camera.position = (frameIncrement[frameIncrement.length - 1].position);
+        camera.lookingAt = (frameIncrement[frameIncrement.length - 1].lookAt);
+
+
+    }
 
     manageControls();
 
@@ -309,13 +349,36 @@ function init(images) {
         animID = requestAnimationFrame(render);
     }
 
+    var lastSnapshot = 0;
+
     function render(now) {
         now *= 0.001;
         let deltaTime = now - then;
         then = now;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // cameraPath.update(deltaTime, camera);
+        if (camera.isFixedPath()) {
+            cameraPath.update(deltaTime, camera);
+
+        } else {
+            if (now - lastSnapshot >= 1) {
+
+
+                if (!pressedKeys["m"]) {
+                    let loc = camera.getPosition();
+                    let at = camera.getLookingAt();
+                    let up = camera.getUp();
+
+                    cameraSavedStates.push([loc, at, up])
+                    console.log("state: " + cameraSavedStates.length + " | ", loc, at);
+                }
+
+                lastSnapshot = now;
+
+            }
+        }
+
+
 
         let mvMatrix = camera.getViewMatrix();
         let eye = camera.getPosition();
@@ -332,6 +395,7 @@ function init(images) {
 
         DrawableTypes["PhongTexture"].drawableObjects.forEach((drawableObject) => {
             phongTextureUniforms["u_texture"] = drawableObject.drawable.getTextureID();
+            phongTextureUniforms["u_mixValue"] = drawableObject.drawable.getTextureMix();
             setMaterials(phongTextureUniforms, drawableObject.materials, worldLight);
             drawableObject.drawable.update(now);
 
@@ -381,40 +445,7 @@ function init(images) {
         DrawableTypes["Phong"].drawableObjects.pop();
         DrawableTypes["Phong"].drawableObjects.pop();
 
-        // setMaterials(phongUniforms, waterMaterials, worldLight);
-        // setUniforms(phongUniforms, programDataPhong);
 
-        // lightFrameObject = DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-        //     [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        //     materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),); lightFrameObject.draw();
-
-        // let box = LookAtBox(camera);
-        // box.draw();
-
-        // riverObject.drawable.update(now);
-        // lightFrameObject.draw();
-        // riverObject.draw();
-        // setMaterials(phongUniforms, terrainMaterials, worldLight);
-        // setUniforms(phongUniforms, programDataPhong);
-
-        // for (let i = 0; i < rocks.length; i++) {
-        //     rocks[i].draw();
-        // }
-
-        // setMaterials(phongUniforms, spiralMaterials, worldLight);
-        // setUniforms(phongUniforms, programDataPhong);
-        // spiralObject.draw();
-        // for (let i = 0; i < trees.length; i++) {
-        //     trees[i].draw();
-        // }
-
-        // GoLObject.drawable.update(now);
-        // GoLObject.draw();
-
-        // let sierpinskiMatrix = sierpinskiObject.drawable.update(now);
-        // phongUniforms["objectMatrix"] = flatten(sierpinskiMatrix);
-        // setUniforms(phongUniforms, programDataPhong);
-        // sierpinskiObject.draw();
 
 
         animID = requestAnimationFrame(render);
@@ -439,7 +470,7 @@ function init(images) {
     }
 
     function manageControls() {
-        const pressedKeys = {};
+
 
         document.addEventListener('keydown', (event) => {
             pressedKeys[event.key] = true;
@@ -450,48 +481,54 @@ function init(images) {
         });
 
         var incrementArray = (array, inc) => {
-            for (let i = 0; i < array.length; i++) {
+            for (let i = 0; i < 3; i++) {
                 array[i] += inc;
             }
         }
         var lightIncrement = .1;
 
         document.addEventListener('keydown', function (event) {
-            if (pressedKeys["p"]) { // water materials
-                // console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
-                switch (event.key) {
-                    case ("1"):
-                        incrementArray(geometricMaterials.ambient, lightIncrement);
-                        break;
-                    case ("2"):
-                        incrementArray(geometricMaterials.diffuse, lightIncrement);
-                        break;
-                    case ("3"):
-                        incrementArray(geometricMaterials.specular, lightIncrement);
-                        break;
-                    case ("4"):
-                        geometricMaterials.shininess += 5;
-                        break;
-                    case ("5"):
-                        geometricMaterials.shininess -= 5;
-                        break;
-                    case ("6"):
-                        incrementArray(geometricMaterials.ambient, -lightIncrement);
-                        break;
-                    case ("7"):
-                        incrementArray(geometricMaterials.diffuse, -lightIncrement);
-                        break;
-                    case ("8"):
-                        incrementArray(geometricMaterials.specular, -lightIncrement);
-                        break;
+            // if (event.key == " ") {
+            //     let loc = camera.getPosition();
+            //     let at = camera.getLookingAt();
+            //     let up = camera.getUp();
+
+            //     cameraSavedStates.push([loc, at, up])
+            //     console.log("Camera: " + loc + " | " + at + " | " + up);
+            // }
+
+            if (event.key == "^") {
+                let output = "#states: " + cameraSavedStates[0].length
+
+                var printVFormatted = (s) => {
+                    return "[" + s[0].toFixed(3) + ", " + s[1].toFixed(3) + "," + s[2].toFixed(3) + "],"
                 }
 
-                console.log("Water Material: " + geometricMaterials.ambient + ", " + geometricMaterials.diffuse + ", " + geometricMaterials.specular);
-                console.log("Water Shininess: " + geometricMaterials.shininess);
+                for (let i = 0; i < cameraSavedStates.length; i++) {
+                    let state = cameraSavedStates[i];
+                    output += ("{position: " + printVFormatted(state[0]) + " lookAt: " + printVFormatted(state[1]) + " up: " + printVFormatted(state[2]) + " duration: 1},\n");
+                    if (i % 10 == 0) {
+                        output += ("\n")
+                    }
+                }
+                console.log(output);
+            }
+
+            if (pressedKeys["p"]) { // water materials
+                // console.log("Water Material: " + waterMaterials.ambient + ", " + waterMaterials.diffuse + ", " + waterMaterials.specular);
+                adjustLighting(geometricMaterials, lightIncrement, event.key);
+
                 return;
 
             }
-            if (pressedKeys["w"]) {
+            else if (pressedKeys["r"]) {
+                adjustLighting(rockMaterials, lightInc, event.key);
+                return;
+            }
+            else if (pressedKeys["g"]) {
+                adjustLighting(grassMaterials, lightInc, event.key);
+            }
+            else if (pressedKeys["w"]) {
                 switch (event.key) {
                     case ("1"):
                         incrementArray(worldLight.ambient, lightIncrement);
@@ -627,14 +664,7 @@ function init(images) {
 
             }
 
-            // console.log("near: " + boundingNear);
-            // console.log("far: " + boundingFar);
-            // console.log("angle: " + viewAngle);
-            // // console.log("CameraLocation: " + cameraLocation);
-            // console.log("Light: " + lightPosition)
-            console.log("LookingAt: " + camera.lookingAt);
-            // console.log("Near: " + boundingNear + ", Far: " + boundingFar + ", angle: " + viewAngle);
-            // console.log("Position: " + cameraLocation)
+
             startAnimation();
 
         });
@@ -646,6 +676,8 @@ function setupTerrainProgram() {
 }
 
 function adjustControlArray(event, array, inc) {
+
+
     switch (event.key) {
         case ("ArrowLeft"):
             array[0] -= inc;
@@ -687,3 +719,41 @@ function calculateTarget(look) {
     ]
 }
 
+function adjustLighting(material, lightIncrement, input) {
+
+    var incrementArray = (array, inc) => {
+        for (let i = 0; i < 3; i++) {
+            array[i] += inc;
+        }
+    }
+    switch (input) {
+        case ("1"):
+            incrementArray(material.ambient, lightIncrement);
+            break;
+        case ("2"):
+            incrementArray(material.diffuse, lightIncrement);
+            break;
+        case ("3"):
+            incrementArray(material.specular, lightIncrement);
+            break;
+        case ("4"):
+            material.shininess += 5;
+            break;
+        case ("5"):
+            material.shininess -= 5;
+            break;
+        case ("6"):
+            incrementArray(material.ambient, -lightIncrement);
+            break;
+        case ("7"):
+            incrementArray(material.diffuse, -lightIncrement);
+            break;
+        case ("8"):
+            incrementArray(material.specular, -lightIncrement);
+            break;
+    }
+
+
+    console.log("material: " + material.ambient + ", " + material.diffuse + ", " + material.specular);
+    console.log("shininess: " + material.shininess);
+}

@@ -11,12 +11,9 @@ class Terrain {
         this.colorsArray = [];
         this.noise = noise;
 
-        // var c0 = [114 / 255, 143 / 255, 113 / 255, 1];
-        var c0 = [77 / 255, 122 / 255, 96 / 255, 1]
-        //var c1 = [150 / 255, 99 / 255, 99 / 255, 1];
+        var c0 = [250 / 255, 151 / 255, 80 / 255, 1]
         var c1 = [85 / 255, 122 / 255, 77 / 255, 1]
 
-        //var c2 = [150 / 255, 130 / 255, 99 / 255, 1];
         var c2 = [115 / 255, 114 / 255, 114 / 255, 1]
         var c3 = [150 / 255, 166 / 255, 128 / 255, 1]
 
@@ -124,6 +121,10 @@ class Terrain {
         }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());
 
+    }
+
+    getTextureMix() {
+        return .4;
     }
 
     getTerrainArray() {

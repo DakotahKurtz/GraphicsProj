@@ -20,7 +20,6 @@ class Sierpinski {
         let c4 = [1, 1, 1, .1];
 
         this.m = translate(posXYZ[0], posXYZ[1], posXYZ[2]);
-        // console.log(flatten(this.m));
 
 
         // The main points of the Sierpinski tetrahedron.
@@ -33,14 +32,17 @@ class Sierpinski {
         var f = b * Math.sqrt(2) / Math.sqrt(3);
         var g = -1 * f;
 
+
         var point_one = [a, b, a];
         var point_two = [c, d, a];
         var point_three = [e, d, f];
         var point_four = [e, d, g];
-
         this._divide_tetra(point_one, point_two, point_three, point_four, c1, c2, c3, c4, depth);
 
-        this.numVertices = this.vertices.length / 3;
+        for (let i = 0; i < this.vertices.length; i++) {
+            this.vertices[i][1] = (2 / 3) * size - this.vertices[i][1]
+        }
+        this.numVertices = this.vertices.length;
 
         this.vertexBuffer = loadBuffer(this.gl, new Float32Array(flatten(this.vertices)), this.gl.STATIC_DRAW);
         this.normalBuffer = loadBuffer(this.gl, new Float32Array(flatten(this.normals)), this.gl.STATIC_DRAW);
@@ -95,9 +97,9 @@ class Sierpinski {
 
     triangle(p1, p2, p3, c1, c2, c3) {
         this.vertices.push(
-            p3[0], p3[1], p3[2],
-            p2[0], p2[1], p2[2],
-            p1[0], p1[1], p1[2]
+            [p3[0], p3[1], p3[2],],
+            [p2[0], p2[1], p2[2],],
+            [p1[0], p1[1], p1[2]],
         );
         let norms = calculateNormals(p1, p3, p2);
         this.normals.push(normalize(norms[0]), normalize(norms[1]), normalize(norms[2]));
@@ -110,8 +112,6 @@ class Sierpinski {
         let buffers = this.getBuffers();
         for (let i = 0; i < bufferAttributes.length; i++) {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffers[i]);
-            // console.log(i + ", " + buffers[i]);
-            // console.log(bufferAttributes[i].size);
             this.gl.vertexAttribPointer(programInfo.getBufferLocations()[i], bufferAttributes[i].size, bufferAttributes[i].type, bufferAttributes[i].normalize, bufferAttributes[i].stride, bufferAttributes[i].offset);
         }
         this.gl.drawArrays(this.getType(), 0, this.getNumVertices());

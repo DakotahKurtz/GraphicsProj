@@ -8,8 +8,9 @@ class River {
 
         this.points = this._initRiver(this.waterLevel);
 
-        let waterColor = [138 / 255, 202 / 255, 237 / 255, .7];
-        this.rippleColor = [138 / 255, 202 / 255, 237 / 255, .1];
+        let waterColor = [138 / 255, 202 / 255, 237 / 255, .9];
+        this.rippleColor = [0.576, 0.808, 0.859, 1];
+        this.rippleColor = [0.808, 0.922, 0.949]
 
 
         this.colors = [];
@@ -61,44 +62,17 @@ class River {
         this.nBuff = loadBuffer(this.gl, new Float32Array(flatten(this.normals)), gl.STATIC_DRAW);
 
         this.updateFunction = (point, t) => {
-            let scale = .01;
-            let frequency = 8;
-            return [point[0], point[1] + (scale * (Math.cos(t * point[0] * point[1]) + Math.sin(t + frequency * point[0]) + Math.cos(t + frequency * point[2]))), point[2]];
+            let scale = .03;
+            let frequency = 6;
+            let moveSpeed = 6;
+            let stretch = 6;
+            return [point[0], point[1] + scale * Math.abs(Math.sin(stretch * point[2] * Math.sin(.2 * t)) + (Math.sin(moveSpeed * t + frequency * point[0]))), point[2]]
         }
 
         this.ripplePoints = this._initRipples(time);
 
         this.createRippleBuffers();
 
-
-
-
-        // let rippleNormals = [];
-        // let rippleColors = [];
-        // for (let i = 0; i < this.ripplePoints.length; i++) {
-        //     rippleColors.push(
-        //         this.rippleColor[0], this.rippleColor[1], this.rippleColor[2], this.rippleColor[3],
-        //     )
-        // }
-        // for (let i = 0; i < this.ripplePoints.length; i += 3) {
-
-        //     let normals = calculateNormals(this.ripplePoints[i + 1], this.ripplePoints[i], this.ripplePoints[i + 2]);
-        //     let n1 = normalize(normals[0]);
-        //     let n2 = normalize(normals[1]);
-        //     let n3 = normalize(normals[2]);
-
-        //     rippleNormals.push(
-        //         n1, n2, n3
-        //         // [0, 1, 0],
-        //         // [0, 1, 0],
-        //         // [0, 1, 0],
-        //     )
-        // }
-        // this.rippleNumVertices = this.ripplePoints.length;
-
-        // this.ripplePBuff = loadBuffer(this.gl, flatten(this.ripplePoints), gl.STATIC_DRAW);
-        // this.rippleCBuff = loadBuffer(this.gl, flatten(rippleColors), gl.STATIC_DRAW);
-        // this.rippleNBuff = loadBuffer(this.gl, new Float32Array(flatten(rippleNormals)), gl.STATIC_DRAW);
     }
 
     getTex(inters) {
@@ -119,6 +93,10 @@ class River {
 
     getWaterArray() {
         return this.waterArray;
+    }
+
+    getTextureMix() {
+        return .01;
     }
 
     createRippleBuffers() {

@@ -6,7 +6,16 @@ class Camera {
         this.direction = this._subtract(this.lookingAt, this.position);
         this.lockedOn = false;
         console.log("Camera initialized");
+        this.isOnRails = false;
         this.printState();
+    }
+
+    setFixedPath(b) {
+        this.isOnRails = b;
+    }
+
+    isFixedPath() {
+        return this.isOnRails;
     }
 
 
@@ -22,11 +31,18 @@ class Camera {
         this.direction = this._subtract(this.lookingAt, this.position);
     }
 
+    getLookingAt() {
+        return this.lookingAt;
+    }
 
 
 
     getViewMatrix() {
-        this.lookingAt = this._recoverLookingAt();
+        if (!this.isOnRails) {
+            this.lookingAt = this._recoverLookingAt();
+
+        }
+        //console.log("Camera: " + this.position + ", " + this.lookingAt)
 
         return lookAt(this.position, this.lookingAt, this.up);
     }
@@ -52,7 +68,7 @@ class Camera {
     }
 
     backward(delta) {
-        console.log("Backward | Delta: ", delta);
+        // console.log("Backward | Delta: ", delta);
         this.printState();
         let backward = this._normalize(this.direction);
         let change = this._scale(backward, -delta);
@@ -60,7 +76,7 @@ class Camera {
     }
 
     right(delta) {
-        console.log("Right | Delta: ", delta);
+        // console.log("Right | Delta: ", delta);
         this.printState();
         let right = this._normalize(this._cross(this.up, this.direction));
         let change = this._scale(right, delta);
@@ -107,7 +123,7 @@ class Camera {
     }
 
     rotatePhi(delta) {
-        console.log("Rotate Phi | Delta: ", delta);
+        // console.log("Rotate Phi | Delta: ", delta);
         if (!this.lockedOn) {
             let translateToOrigin = this._subtract(this.lookingAt, this.position);
             let forward = translateToOrigin;
@@ -145,7 +161,7 @@ class Camera {
     }
 
     rotateTheta(delta) {
-        console.log("Rotate Theta | Delta: ", delta);
+        // console.log("Rotate Theta | Delta: ", delta);
         this.printState();
         if (!this.lockedOn) {
             let translateToOrigin = this._subtract(this.lookingAt, this.position);
@@ -269,6 +285,10 @@ class Camera {
         // // console.log("Spherical: r, theta, phi", this.spherical[0], this.spherical[1], this.spherical[2]);
         // console.log("Up: ", this.up);
         // console.log("Locked On: ", this.lockedOn);
+    }
+
+    getUp() {
+        return this.up;
     }
 
 }

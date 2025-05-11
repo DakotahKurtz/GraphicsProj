@@ -1,5 +1,6 @@
-var seed = Math.floor(Math.random() * (50000 - 1 + 1)) + 1;
-console.log("Seed: " + seed);
+// var seed = Math.floor(Math.random() * (50000 - 1 + 1)) + 1;
+// console.log("Seed: " + seed);
+var seed = 12360;
 const SeededRandom = mulberry32(seed);
 
 function DrawableObject(shape, programInfo, bufferAttributes, materials) {
