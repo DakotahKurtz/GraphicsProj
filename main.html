@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <!-- 
 rock texture: Amal Kumar Polyhaven
+skybox texture: I didn't make it myself - I can't find where I got it now. It was free and available to 
+the public
+
+heightmap is based on the grand canyon, the pixel values used to generate the heightmap come from
+https://manticorp.github.io/unrealheightmap/
+
+Rocks use a 1/2 step version of sphere generation algorithm, copied from Dr. Abumurad, Commonwealth University in PA
+
+Organization of shader programs/uniforms inspired by Less Code, More Fun article at
+https://webglfundamentals.org/webgl/lessons/webgl-less-code-more-fun.html
+
+Organization of textures from same website, at:
+https://webglfundamentals.org/webgl/lessons/webgl-2-textures.html
+
+3D sierpinski triangle (gasket) algorithm adapted from
+https://lettier.github.io/posts/2016-02-29-triforce-overload-sierpinski-pyramids.html
+
  -->
 <html>
 <style type="text/css">
@@ -18,9 +35,9 @@ rock texture: Amal Kumar Polyhaven
 <script type="text/javascript" src="webgl-utils/ProgramData.js"></script>
 <script src="webgl-utils/webgl-help.js"></script>
 <script src="utils.js"></script>
-<script src="CameraFrames.js"></script>
-<script src="Camera.js"></script>
-<script src="CameraPath.js"></script>
+<script src="camMgmt/Camera.js"></script>
+<script src="camMgmt/CameraFrames.js"></script>
+<script src="camMgmt/CameraPath.js"></script>
 
 <script src="drawables/Rock.js"></script>
 <script src="drawables/Grass.js"></script>
@@ -38,15 +55,23 @@ rock texture: Amal Kumar Polyhaven
     <canvas id="gl-canvas" width="800" height="800">
         Oops ... your browser doesn't support the HTML5 canvas element
     </canvas>
-    <div style="display: inline-flex; column-gap: 10px;">
+    <div style="display: inline-flex; column-gap: 15px; background-color: rgb(139, 184, 223);">
         <div>
             <input type="checkbox" id="lookAt" name="lookAtBox" padding-right="10px">
             <label for="lookAtBox" padding-right="10px">Toggle Camera Focus</label>
         </div>
 
-        <button type="button" id="animation">Camera Tour</button>
-        <button type="button" id="control">Manual Control</button>
-        <div>press 'h' for help</div>
+        <button type="button" id="animation" style="background-color: rgb(94, 156, 211); /* Green */
+        border: none;
+        color: white;
+        text-align: center;
+        display: inline-block;">Camera Tour</button>
+        <button type="button" id="control" style="background-color: rgb(94, 156, 211); /* Green */
+        border: none;
+        color: white;
+        text-align: center;
+        display: inline-block;">Manual Control</button>
+        <div style="background-color: rgb(244, 230, 210);">press 'h' for help</div>
     </div>
 
     <!-- Controls overlay -->

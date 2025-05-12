@@ -14,7 +14,9 @@ class CameraPath {
     }
 
     update(dt, camera) {
-        if (this.currentIndex >= this.keyframes.length - 1) return;
+        if (this.currentIndex >= this.keyframes.length - 1) {
+            this.currentIndex = 0;
+        }
         const curr = this.keyframes[this.currentIndex];
         const next = this.keyframes[this.currentIndex + 1];
 
@@ -27,9 +29,9 @@ class CameraPath {
         this.setStoredPosition(camera.position, camera.lookingAt);
 
         if (t >= 1) {
-
             this.time = 0;
             this.currentIndex++;
+            console.log(this.currentIndex);
 
         }
     }

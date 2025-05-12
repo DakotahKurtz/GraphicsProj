@@ -93,6 +93,7 @@ class SkyBox {
     }
 
     _getBoxPoints(size) {
+        let inc = .01;
         let positions = new Float32Array([
 
 
@@ -130,12 +131,12 @@ class SkyBox {
             size, size, size,
 
             // up
-            -size, size, size,
-            -size, size, -size,
-            size, size, size,
-            size, size, size,
-            -size, size, -size,
-            size, size, -size,
+            -size, size - inc, size,
+            -size, size - inc, -size,
+            size, size - inc, size,
+            size, size - inc, size,
+            -size, size - inc, -size,
+            size, size - inc, -size,
 
             // down
             -size, -size, -size,

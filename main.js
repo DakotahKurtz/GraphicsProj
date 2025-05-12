@@ -1,9 +1,8 @@
 "use strict";
 
 const imageURLS = [
-    // "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
-    // "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
-    "https://i.ibb.co/6M9cBc6/rock-Reduced.png",
+    "https://i.ibb.co/7xLCgSbY/sky-Box-Adjusted.png",
+    "https://i.ibb.co/tPBYz9fz/flat-Rock-Reduced.png",
 ]
 
 
@@ -29,11 +28,10 @@ var lighting = (ambient, diffuse, specular) => {
         specular: specular,
     }
 }
-//var worldLight = lighting(lightAmbient, lightDiffuse, lightSpecular);
 
 var worldLight = lighting(
     [.25, .2, .2, 1],
-    [.9, .9, .9, 1],
+    [.6, .6, .6, 1],
     [.9, .9, .9, 1],
 )
 
@@ -188,31 +186,21 @@ function init(images) {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     var aspect = canvas.width / canvas.height;
-    var lookInc = .01;
     var cameraAtInc = .1;
     var boundingInc = 1;
     var angleInc = .03;
     var lightInc = .1;
     var depthChangeInc = .1;
     var waterLevel = 1.19;
-    var waterInc = .1;
-
     var cameraLocation = [9.006, 2.989, 8.743];
     var lookingAt = [-2.776, 17.579, 7.887];
-
     var camera = new Camera(cameraLocation, lookingAt, [0, 1, 0]);
-
     var boundingNear = .3;
     var boundingFar = 100;
     var viewAngle = 30;
+    var lightPosition = vec4(0, 15, 0, 1);
 
-    var lightPosition = vec4(0, 9, 0, 1);
-
-
-
-    // initialize objects to draw
     const MAP_SIZE = 20;
-
     var worldArray = generateWorldArray(terrainGridDim, MAP_SIZE, waterLevel, 15);
 
     DrawableTypes["PhongTexture"].drawableObjects.push(
@@ -225,15 +213,7 @@ function init(images) {
             waterMaterials),
     )
 
-    DrawableTypes["Sparse"].drawableObjects.push(
-
-    )
-
     DrawableTypes["Phong"].drawableObjects.push(
-
-        // DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-        //     [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-        //     geometricMaterials,),
 
         DrawableObject(new Sierpinski(gl, 3, 5, [0, 5, -6]), programDataPhong,
             [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
@@ -246,16 +226,15 @@ function init(images) {
             grassMaterials,),
     );
 
-    var trees = [];
     let objectPlacement = worldArray.worldNoise;
     let randomIncHeight = .3;
     let randomIncBase = .05;
     let randomIncSteps = 5;
-    var thresh = .002;
+    var spiralThresh = .002;
 
     for (let i = 0; i < objectPlacement.length; i++) {
         for (let j = 0; j < objectPlacement[i].length; j++) {
-            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < thresh) {
+            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < spiralThresh) {
                 let x = worldArray.terrainMesh[i][j][0];
                 let z = worldArray.terrainMesh[i][j][2]
                 let y = worldArray.terrainMesh[i][j][1];
@@ -281,10 +260,10 @@ function init(images) {
         }
     }
 
-    var rocks = [];
+    let rockThresh = .01;
     for (let i = 0; i < objectPlacement.length; i++) {
         for (let j = 0; j < objectPlacement[i].length; j++) {
-            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < .01) {
+            if (objectPlacement[i][j] == 1 && getRandomFloat(0, 1) < rockThresh) {
                 let x = worldArray.terrainMesh[i][j][0];
                 let z = worldArray.terrainMesh[i][j][2]
                 let y = worldArray.terrainMesh[i][j][1] - .02;
@@ -306,6 +285,12 @@ function init(images) {
             }
         }
     }
+
+    DrawableTypes["Texture"].drawableObjects.push(
+        DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
+            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
+        )
+    )
 
     var lookAtCheckBox = document.getElementById("lookAt");
     lookAtCheckBox.value = false;
@@ -337,14 +322,7 @@ function init(images) {
         isShowLookAt = lookAtCheckBox.checked;
     })
 
-    DrawableTypes["Texture"].drawableObjects.push(
-        DrawableObject(new SkyBox(gl, 20, 0), programDataTexture,
-            [bufferAttributes(3, gl.FLOAT), bufferAttributes(2, gl.FLOAT)], null
-        )
-    )
-
     manageControls();
-
     startAnimation();
 
     function startAnimation() {
@@ -405,16 +383,16 @@ function init(images) {
 
             drawableObject.draw();
         })
-        // textureUniforms["u_texture"] = skyBoxObject.drawable.getTextureID();
-        // setUniforms(textureUniforms, programDataTexture);
+        // // textureUniforms["u_texture"] = skyBoxObject.drawable.getTextureID();
+        // // setUniforms(textureUniforms, programDataTexture);
 
-        // skyBoxObject.draw();
+        // // skyBoxObject.draw();
 
-        DrawableTypes["Phong"].drawableObjects.push(
-            DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
-                [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
-                materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),),
-        );
+        // DrawableTypes["Phong"].drawableObjects.push(
+        //     DrawableObject(new TransparentBox(gl, .5, lightPosition), programDataPhong,
+        //         [bufferAttributes(3, gl.FLOAT), bufferAttributes(3, gl.FLOAT), bufferAttributes(4, gl.FLOAT)],
+        //         materials(lighting(vec4(.2, .2, .2, 1), vec4(.9, .9, .9, 1), vec4(.9, .9, .9, 1)), 100),),
+        // );
 
         if (isShowLookAt) {
             DrawableTypes["Phong"].drawableObjects.push(
@@ -438,7 +416,6 @@ function init(images) {
             drawableObject.draw();
 
         })
-        DrawableTypes["Phong"].drawableObjects.pop();
         if (isShowLookAt) {
             DrawableTypes["Phong"].drawableObjects.pop();
 
